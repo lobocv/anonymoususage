@@ -140,8 +140,7 @@ class State(Table):
 
 
 class AnonymousUsageTracker(object):
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
-                 ftp_host='', ftp_user='', ftp_passwd='', ftp_path=''):
+    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -155,10 +154,7 @@ class AnonymousUsageTracker(object):
         self.tracker_file = self.filename + '.db'
         self.submit_interval = submit_interval
         self.check_interval = check_interval
-        self.ftp_host = ftp_host
-        self.ftp_user = ftp_user
-        self.ftp_passwd = ftp_passwd
-        self.ftp_path = ftp_path
+        self._ftp = {}
         self._tables = {}
         self._watcher = None
         self._watcher_enabled = False
@@ -185,10 +181,7 @@ class AnonymousUsageTracker(object):
                 logging.info('AnonymousUsageTracker: A submission is overdue. Last submission was %s' % last_submission)
             except IndexError:
                 logging.info('AnonymousUsageTracker: A submission is overdue')
-            if all((ftp_host, ftp_user, ftp_passwd)):
-                self.start_watcher()
-            else:
-                raise ValueError('Not all arguments are given for FTP')
+            self.start_watcher()
 
     def __getitem__(self, item):
         """
@@ -201,6 +194,9 @@ class AnonymousUsageTracker(object):
         Insert a new row into the table of name `key` with value `value`
         """
         self._tables[key].insert(value)
+
+    def setup_ftp(self, host, user, passwd, path='', timeout=5):
+        self._ftp = dict(host=host, user=user, passwd=passwd, timeout=timeout, path=path)
 
     def track_statistic(self, name):
         """
@@ -267,7 +263,9 @@ class AnonymousUsageTracker(object):
         Merge the partial database back into master after a successful upload.
         """
         try:
-            ftp = ftplib.FTP(host=self.ftp_host, user=self.ftp_user, passwd=self.ftp_passwd, timeout=5)
+            ftpinfo = self._ftp
+            ftp = ftplib.FTP(host=ftpinfo['host'], user=ftpinfo['user'], passwd=ftpinfo['passwd'],
+                             timeout=ftpinfo['timeout'])
         except ftplib.error_perm as e:
             logging.error(e)
             self.stop_watcher()
@@ -278,7 +276,7 @@ class AnonymousUsageTracker(object):
             new_filename = self.uuid + '.db'
             ftp.storbinary('STOR %s' % new_filename, _f)
             self['__submissions__'] += 1
-            logging.info('AnonymousUsageTracker: Submission to %s successful.' % self.ftp_host)
+            logging.info('AnonymousUsageTracker: Submission to %s successful.' % ftpinfo['host'])
             self.merge_part()
             return True
 
@@ -323,7 +321,8 @@ class AnonymousUsageTracker(object):
             if not self._watcher_enabled:
                 break
             logging.info('AnonymousUsageTracker: Attempting to upload usage statistics.')
-            great_success = self.ftp_submit()
+            if self._ftp:
+                great_success = self.ftp_submit()
         logging.info('AnonymousUsageTracker: Watcher stopped.')
 
 
