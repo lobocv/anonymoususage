@@ -103,13 +103,18 @@ class Statistic(Table):
     def __add__(self, other):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         self.count += other
-        cur = self.dbcon.cursor()
-        cur.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
+        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
                                                                                    self.count,
                                                                                    dt)))
         self.dbcon.commit()
         return self
 
+    def __sub__(self, other):
+        count = self.count + 1 - other
+        self.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
+        self.count -= other
+        self.dbcon.commit()
+        return self
 
 class State(Table):
     """
@@ -130,8 +135,7 @@ class State(Table):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         self.count += 1
         self.state = value
-        cur = self.dbcon.cursor()
-        cur.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
+        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
                                                                                    self.count,
                                                                                    self.state,
                                                                                    dt)))
@@ -332,12 +336,12 @@ if __name__ == '__main__':
     # interval = None
     tracker = AnonymousUsageTracker(uuid='123',
                                     tracker_file='/home/calvin/test/testtracker.db',
-                                    check_interval=5,
-                                    submit_interval=interval,
-                                    ftp_host='127.0.0.1',
-                                    ftp_user='user',
-                                    ftp_passwd='12345',
-                                    ftp_path='/dir1')
+                                    check_interval=600,
+                                    submit_interval=interval)
+    tracker.setup_ftp(host='ftp.sensoft.ca',
+                      user='LMX',
+                      passwd='G8mu5YLC6CCKkwme',
+                      path='./usage')
     stat1 = 'Screenshots'
     stat2 = 'Grids'
     stat3 = 'Lines'
@@ -349,9 +353,16 @@ if __name__ == '__main__':
 
     tracker.track_state(state1, initial_state='US Standard')
     tracker[stat1] += 1
-    tracker[stat2] += 1
-    tracker[stat3] += 1
-    tracker[state1] = 'Metric'
+    tracker[stat1] += 1
+    # tracker[stat2] += 1
+    # tracker[stat3] += 1
+    # tracker[state1] = 'Metric'
+    tracker[stat1] -= 1
+    tracker[stat1] -= 1
+    tracker[stat1] += 1
+    tracker[stat1] += 1
+
+
     # tracker[state1] = 'US Standard'
     # tracker.merge_part()
     # tracker.dbcon.close()
