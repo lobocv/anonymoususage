@@ -6,7 +6,8 @@ import sqlite3
 import datetime
 import time
 import logging
-
+import fnmatch
+import re
 from threading import Thread
 
 logging.basicConfig()
@@ -275,9 +276,16 @@ class AnonymousUsageTracker(object):
             self.stop_watcher()
             return
 
-        ftp.cwd(self.ftp_path)
+        ftp.cwd(ftpinfo['path'])
         with open(self.tracker_file_part, 'rb') as _f:
-            new_filename = self.uuid + '.db'
+            regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
+            files = regex_db.findall(','.join(ftp.nlst()))
+            if files:
+                regex_number = re.compile(r'_\d+')
+                n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
+            else:
+                n = 1
+            new_filename = self.uuid + '_%03d.db' % n
             ftp.storbinary('STOR %s' % new_filename, _f)
             self['__submissions__'] += 1
             logging.info('AnonymousUsageTracker: Submission to %s successful.' % ftpinfo['host'])
