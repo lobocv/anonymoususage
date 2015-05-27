@@ -275,7 +275,7 @@ class AnonymousUsageTracker(object):
             self.stop_watcher()
             return
 
-        ftp.cwd(self.ftp_path)
+        ftp.cwd(ftpinfo['path'])
         with open(self.tracker_file_part, 'rb') as _f:
             new_filename = self.uuid + '.db'
             ftp.storbinary('STOR %s' % new_filename, _f)
