@@ -6,7 +6,6 @@ import sqlite3
 import datetime
 import time
 import logging
-import fnmatch
 import re
 from threading import Thread
 
