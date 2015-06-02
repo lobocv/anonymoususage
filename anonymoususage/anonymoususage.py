@@ -7,7 +7,7 @@ import datetime
 import time
 import logging
 import re
-from threading import Thread
+import threading
 
 logging.basicConfig()
 logger = logging.getLogger()
@@ -306,10 +306,13 @@ class AnonymousUsageTracker(object):
         Start the watcher thread that tries to upload usage statistics.
         """
         logging.info('AnonymousUsageTracker: Starting watcher.')
-        self._watcher = Thread(target=self._watcher_thread, name='usage_tracker')
-        self._watcher.setDaemon(True)
-        self._watcher_enabled = True
-        self._watcher.start()
+        if self._watcher and self._watcher.is_alive:
+            self._watcher_enabled = True
+        else:
+            self._watcher = threading.Thread(target=self._watcher_thread, name='usage_tracker')
+            self._watcher.setDaemon(True)
+            self._watcher_enabled = True
+            self._watcher.start()
 
     def stop_watcher(self):
         """
@@ -345,6 +348,7 @@ class AnonymousUsageTracker(object):
             if self._ftp:
                 great_success = self.ftp_submit()
         logging.info('AnonymousUsageTracker: Watcher stopped.')
+        self._watcher = None
 
 
 if __name__ == '__main__':
