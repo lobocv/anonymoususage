@@ -267,29 +267,39 @@ class AnonymousUsageTracker(object):
         Merge the partial database back into master after a successful upload.
         """
         try:
+            # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
+            # errors always exit nicely.
             ftpinfo = self._ftp
             ftp = ftplib.FTP(host=ftpinfo['host'], user=ftpinfo['user'], passwd=ftpinfo['passwd'],
                              timeout=ftpinfo['timeout'])
-        except ftplib.error_perm as e:
+
+            ftp.cwd(ftpinfo['path'])
+            with open(self.tracker_file_part, 'rb') as _f:
+                regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
+                files = regex_db.findall(','.join(ftp.nlst()))
+                if files:
+                    regex_number = re.compile(r'_\d+')
+                    n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
+                else:
+                    n = 1
+                new_filename = self.uuid + '_%03d.db' % n
+                ftp.storbinary('STOR %s' % new_filename, _f)
+                self['__submissions__'] += 1
+                logging.info('AnonymousUsageTracker: Submission to %s successful.' % ftpinfo['host'])
+                self.merge_part()
+                return True
+        except Exception as e:
             logging.error(e)
             self.stop_watcher()
             return
 
-        ftp.cwd(ftpinfo['path'])
-        with open(self.tracker_file_part, 'rb') as _f:
-            regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
-            files = regex_db.findall(','.join(ftp.nlst()))
-            if files:
-                regex_number = re.compile(r'_\d+')
-                n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
-            else:
-                n = 1
-            new_filename = self.uuid + '_%03d.db' % n
-            ftp.storbinary('STOR %s' % new_filename, _f)
-            self['__submissions__'] += 1
-            logging.info('AnonymousUsageTracker: Submission to %s successful.' % ftpinfo['host'])
-            self.merge_part()
-            return True
+    def enable(self):
+        logging.info('AnonymousUsageTracker: Enabled.')
+        self.start_watcher()
+
+    def disable(self):
+        logging.info('AnonymousUsageTracker: Disabled.')
+        self.stop_watcher()
 
     def start_watcher(self):
         """
