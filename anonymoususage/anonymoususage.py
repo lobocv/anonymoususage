@@ -9,142 +9,13 @@ import logging
 import re
 import threading
 
-logging.basicConfig()
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-
-def get_table_list(dbconn):
-    cur = dbconn.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    return [item[0] for item in cur.fetchall()]
-
-
-def check_table_exists(dbcon, tablename):
-    dbcur = dbcon.cursor()
-    dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
-    result = dbcur.fetchone()
-    dbcur.close()
-    return result[0] == 1
-
-
-class Table(object):
-    time_fmt = "%d/%m/%Y %H:%M:%S"
-    table_args = "UUID INT, Count INT, Time TEXT"
-
-    def __init__(self, name, tracker, *args, **kwargs):
-        self.tracker = tracker
-        self.dbcon = self.tracker.dbcon
-        self.name = name
-        self.count = self.get_table_count()
-        if self.count == 0 or tracker.submit_interval:
-            self.create_table(self.dbcon)
-
-    def get_table_count(self):
-        """
-        Attempt to load the statistic from the database.
-        :return: Number of entries for the statistic
-        """
-        rows = []
-        if check_table_exists(self.tracker.dbcon_master, self.name):
-            cursor = self.tracker.dbcon_master.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
-        if check_table_exists(self.tracker.dbcon_part, self.name):
-            cursor = self.tracker.dbcon_part.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
-
-        logger.info("AnonymousUsageTracker: {name}: {n} table entries found".format(name=self.name,
-                                                                                    n=len(rows),
-                                                                                    rows='\n\t'.join(map(str, rows))))
-
-        return len(rows)
-
-    def create_table(self, dbcon):
-        try:
-            dbcon.execute("CREATE TABLE {name}({args})".format(name=self.name, args=self.table_args))
-        except sqlite3.OperationalError:
-            pass
-
-    def insert(self, value):
-        """
-        Contains the functionally of assigning a value to a statistic in the AnonymousUsageTracker. Usually this will
-        involve inserting some data into the database table for the statistic.
-        :param value: assignment value to the tracker, ie. `tracker[stat_name] = some_value`
-        """
-        pass
-
-    def get_last(self, n):
-        rows = []
-        if check_table_exists(self.tracker.dbcon_master, self.name):
-            cur = self.tracker.dbcon_master.cursor()
-            # cur.execute("SELECT * FROM %s" % self.name)
-            cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
-            rows.extend(cur.fetchall())
-        if check_table_exists(self.tracker.dbcon_part, self.name):
-            cur = self.tracker.dbcon_part.cursor()
-            # cur.execute("SELECT * FROM %s" % self.name)
-            cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
-            rows.extend(cur.fetchall())
-
-        return rows
-
-
-class Statistic(Table):
-    """
-    Tracks the usage of a certain statistic over time.
-
-    Usage:
-        tracker.track_statistic(stat_name)
-        tracker[stat_name] += 1
-    """
-
-    def __add__(self, other):
-        dt = datetime.datetime.now().strftime(self.time_fmt)
-        self.count += other
-        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
-                                                                                   self.count,
-                                                                                   dt)))
-        self.dbcon.commit()
-        return self
-
-    def __sub__(self, other):
-        count = self.count + 1 - other
-        self.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
-        self.count -= other
-        self.dbcon.commit()
-        return self
-
-class State(Table):
-    """
-    Tracks the state of a certain attribute over time.
-
-    Usage:
-        tracker.track_state(state_name)
-        tracker[state_name] = 'ON'
-        tracker[state_name] = 'OFF'
-    """
-    table_args = "UUID INT, Count INT, State TEXT, Time TEXT"
-
-    def __init__(self, *args, **kwargs):
-        super(State, self).__init__(*args, **kwargs)
-        self.state = None
-
-    def insert(self, value):
-        dt = datetime.datetime.now().strftime(self.time_fmt)
-        self.count += 1
-        self.state = value
-        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
-                                                                                   self.count,
-                                                                                   self.state,
-                                                                                   dt)))
-        self.dbcon.commit()
-        return self
-
+from .table import Table, check_table_exists
+from .state import State
+from .statistic import Statistic
 
 class AnonymousUsageTracker(object):
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60):
+    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
+                 logger=None, log_level=logging.INFO):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -162,6 +33,12 @@ class AnonymousUsageTracker(object):
         self._tables = {}
         self._watcher = None
         self._watcher_enabled = False
+
+        if logger is None:
+            self.logger = logging.getLogger('AnonymousUsage')
+            self.logger.setLevel(log_level)
+        else:
+            self.logger = logger
 
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.tracker_file_master = self.filename + '.db'
@@ -182,9 +59,9 @@ class AnonymousUsageTracker(object):
         if self._requires_submission():
             try:
                 last_submission = self['__submissions__'].get_last(1)[0]['Time']
-                logging.info('AnonymousUsageTracker: A submission is overdue. Last submission was %s' % last_submission)
+                self.logger.info('A submission is overdue. Last submission was %s' % last_submission)
             except IndexError:
-                logging.info('AnonymousUsageTracker: A submission is overdue')
+                self.logger.info('A submission is overdue')
             self.start_watcher()
 
     def __getitem__(self, item):
@@ -212,7 +89,7 @@ class AnonymousUsageTracker(object):
         """
         Create a State object in the Tracker.
         """
-        self._tables[name] = State(name, self, initial_state)
+        self._tables[name] = State(name, self, initial_state=initial_state)
 
     def get_row_count(self):
         info = {}
@@ -247,9 +124,7 @@ class AnonymousUsageTracker(object):
                 if rows:
                     n = rows[0][1]
                     m = n + len(rows) - 1
-                    logger.info("AnonymousUsageTracker: Merging entries {n} through {m} of {name}".format(name=table,
-                                                                                                          n=n,
-                                                                                                          m=m))
+                    self.logger.debug("Merging entries {n} through {m} of {name}".format(name=table, n=n, m=m))
                     if not check_table_exists(master, table):
                         stat.create_table(master)
 
@@ -285,27 +160,27 @@ class AnonymousUsageTracker(object):
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 self['__submissions__'] += 1
-                logging.info('AnonymousUsageTracker: Submission to %s successful.' % ftpinfo['host'])
+                self.logger.info('Submission to %s successful.' % ftpinfo['host'])
                 self.merge_part()
                 return True
         except Exception as e:
-            logging.error(e)
+            self.logger.error(e)
             self.stop_watcher()
             return
 
     def enable(self):
-        logging.info('AnonymousUsageTracker: Enabled.')
+        self.logger.info('Enabled.')
         self.start_watcher()
 
     def disable(self):
-        logging.info('AnonymousUsageTracker: Disabled.')
+        self.logger.info('Disabled.')
         self.stop_watcher()
 
     def start_watcher(self):
         """
         Start the watcher thread that tries to upload usage statistics.
         """
-        logging.info('AnonymousUsageTracker: Starting watcher.')
+        self.logger.info('Starting watcher.')
         if self._watcher and self._watcher.is_alive:
             self._watcher_enabled = True
         else:
@@ -320,7 +195,7 @@ class AnonymousUsageTracker(object):
         """
         if self._watcher:
             self._watcher_enabled = False
-            logging.info('AnonymousUsageTracker: Stopping watcher.')
+            self.logger.info('Stopping watcher.')
 
     def _requires_submission(self):
         """
@@ -344,10 +219,10 @@ class AnonymousUsageTracker(object):
             time.sleep(self.check_interval)
             if not self._watcher_enabled:
                 break
-            logging.info('AnonymousUsageTracker: Attempting to upload usage statistics.')
+            self.logger.info('Attempting to upload usage statistics.')
             if self._ftp:
                 great_success = self.ftp_submit()
-        logging.info('AnonymousUsageTracker: Watcher stopped.')
+        self.logger.info('Watcher stopped.')
         self._watcher = None
 
 
