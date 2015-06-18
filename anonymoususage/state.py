@@ -23,8 +23,14 @@ class State(Table):
             self.insert(self.state)
 
     def insert(self, value):
-        last_value = self.get_last(1)[0]['State']
-        if value == last_value:
+        try:
+            last_value = self.get_last(1)[0]['State']
+        except IndexError:
+            is_redundant = False
+        else:
+            is_redundant = value == last_value
+
+        if is_redundant:
             # Don't add redundant information
             return
         dt = datetime.datetime.now().strftime(self.time_fmt)
