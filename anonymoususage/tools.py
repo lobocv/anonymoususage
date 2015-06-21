@@ -2,6 +2,9 @@ __author__ = 'calvin'
 
 import ftplib
 import sqlite3
+import logging
+
+logger = logging.getLogger('AnonymousUsage')
 
 def create_table(dbcon, name, columns):
     """
@@ -58,7 +61,7 @@ def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
     ftp.connect(host=host, port=port, timeout=timeout)
     ftp.login(user=user, passwd=passwd, acct=acct)
     ftp.cwd(path)
-
+    logger.debug('Login to %s successful.' % host)
     return ftp
 
 def merge_databases(master, part):
@@ -66,21 +69,22 @@ def merge_databases(master, part):
     mcur = master.cursor()
     pcur = part.cursor()
 
+    logger.debug("Merging databases...")
     tables = get_table_list(part)
     for table in tables:
         cols = get_table_columns(part, table)
         pcur.execute("SELECT * FROM %s" % table)
         rows = pcur.fetchall()
         if rows:
-            n = rows[-1][1]
-            m = n + len(rows) - 1
+            logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[-1][1]))
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
 
             args = ("?," * len(cols))[:-1]
             query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
             mcur.executemany(query, rows)
-            print "Merging entries {n} through {m} of {name}".format(name=table, n=n, m=m)
+            logger.debug("Merging {m} rows of table {name} into master".format(name=table, m=len(rows)))
+
 
     master.row_factory = part.row_factory = sqlite3.Row
     master.commit()

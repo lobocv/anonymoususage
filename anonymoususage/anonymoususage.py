@@ -1,8 +1,6 @@
 __author__ = 'calvin'
 
-import ftplib
 import os
-import sqlite3
 import datetime
 import time
 import logging
@@ -17,10 +15,12 @@ from .exceptions import IntervalError
 from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
+logger = logging.getLogger('AnonymousUsage')
+logger.setLevel(logging.DEBUG)
 
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
-                 config='', logger=None, log_level=logging.INFO):
+                 config=''):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -53,12 +53,6 @@ class AnonymousUsageTracker(object):
         else:
             self._ftp = {}
 
-        if logger is None:
-            self.logger = logging.getLogger('AnonymousUsage')
-            self.logger.setLevel(log_level)
-        else:
-            self.logger = logger
-
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.tracker_file_master = self.filename + '.db'
         self.dbcon_master = sqlite3.connect(self.tracker_file_master, check_same_thread=False)
@@ -78,9 +72,9 @@ class AnonymousUsageTracker(object):
         if self._requires_submission():
             try:
                 last_submission = self['__submissions__'].get_last(1)[0]['Time']
-                self.logger.info('A submission is overdue. Last submission was %s' % last_submission)
+                logger.info('A submission is overdue. Last submission was %s' % last_submission)
             except IndexError:
-                self.logger.info('A submission is overdue')
+                logger.info('A submission is overdue')
             self.start_watcher()
 
     def __getitem__(self, item):
@@ -147,12 +141,12 @@ class AnonymousUsageTracker(object):
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 self['__submissions__'] += 1
-                self.logger.info('Submission to %s successful.' % self._ftp['host'])
+                logger.info('Submission to %s successful.' % self._ftp['host'])
                 merge_databases(self.dbcon_master, self.dbcon_part)
                 os.remove(self.tracker_file_part)
                 return True
         except Exception as e:
-            self.logger.error(e)
+            logger.error(e)
             self.stop_watcher()
             return
 
@@ -167,18 +161,18 @@ class AnonymousUsageTracker(object):
                 self.setup_ftp(**dict(cfg.items('FTP')))
 
     def enable(self):
-        self.logger.info('Enabled.')
+        logger.info('Enabled.')
         self.start_watcher()
 
     def disable(self):
-        self.logger.info('Disabled.')
+        logger.info('Disabled.')
         self.stop_watcher()
 
     def start_watcher(self):
         """
         Start the watcher thread that tries to upload usage statistics.
         """
-        self.logger.info('Starting watcher.')
+        logger.info('Starting watcher.')
         if self._watcher and self._watcher.is_alive:
             self._watcher_enabled = True
         else:
@@ -193,7 +187,7 @@ class AnonymousUsageTracker(object):
         """
         if self._watcher:
             self._watcher_enabled = False
-            self.logger.info('Stopping watcher.')
+            logger.info('Stopping watcher.')
 
     def _requires_submission(self):
         """
@@ -217,10 +211,10 @@ class AnonymousUsageTracker(object):
             time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
-            self.logger.info('Attempting to upload usage statistics.')
+            logger.info('Attempting to upload usage statistics.')
             if self._ftp:
                 great_success = self.ftp_submit()
-        self.logger.info('Watcher stopped.')
+        logger.info('Watcher stopped.')
         self._watcher = None
 
 

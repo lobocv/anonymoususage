@@ -2,6 +2,8 @@ __author__ = 'calvin'
 
 from .tools import *
 
+logger = logging.getLogger('AnonymousUsage')
+
 
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
@@ -11,7 +13,6 @@ class Table(object):
         self.tracker = tracker
         self.dbcon = self.tracker.dbcon
         self.name = name
-        self.logger = tracker.logger
 
         self.count = self.get_table_count()
         if not check_table_exists(self.dbcon, name):
@@ -32,7 +33,7 @@ class Table(object):
             cursor.execute("SELECT * FROM %s" % self.name)
             rows.extend(cursor.fetchall())
 
-        self.logger.debug("{name}: {n} table entries found".format(name=self.name,
+        logger.debug("{name}: {n} table entries found".format(name=self.name,
                                                                   n=len(rows),
                                                                   rows='\n\t'.join(map(str, rows))))
         return len(rows)
