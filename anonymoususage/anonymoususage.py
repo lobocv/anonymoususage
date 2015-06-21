@@ -14,7 +14,7 @@ from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
 from .exceptions import IntervalError
-
+from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
 
@@ -128,34 +128,6 @@ class AnonymousUsageTracker(object):
                     info[table] = {'nrows': nrows}
         return info
 
-    def merge_part(self):
-        """
-        Merge the partial database into the master.
-        """
-        if self.submit_interval:
-            master = self.dbcon_master
-            part = self.dbcon_part
-            master.row_factory = part.row_factory = None
-            mcur = master.cursor()
-            pcur = part.cursor()
-            for table, stat in self._tables.items():
-                pcur.execute("SELECT * FROM %s" % table)
-                rows = pcur.fetchall()
-                if rows:
-                    n = rows[0][1]
-                    m = n + len(rows) - 1
-                    self.logger.debug("Merging entries {n} through {m} of {name}".format(name=table, n=n, m=m))
-                    if not check_table_exists(master, table):
-                        stat.create_table(master)
-
-                    args = ("?," * len(stat.table_args.split(',')))[:-1]
-                    query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
-                    mcur.executemany(query, rows)
-
-            master.row_factory = part.row_factory = sqlite3.Row
-            master.commit()
-            os.remove(self.filename + '.part.db')
-
     def ftp_submit(self):
         """
         Upload the database to the FTP server. Only submit new information contained in the partial database.
@@ -164,11 +136,7 @@ class AnonymousUsageTracker(object):
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            ftpinfo = self._ftp
-            ftp = ftplib.FTP()
-            ftp.connect(host=ftpinfo['host'], port=ftpinfo['port'], timeout=ftpinfo['timeout'])
-            ftp.login(user=ftpinfo['user'], passwd=ftpinfo['passwd'], acct=ftpinfo['acct'])
-            ftp.cwd(ftpinfo['path'])
+            ftp = login_ftp(**self._ftp)
             with open(self.tracker_file_part, 'rb') as _f:
                 files = self.regex_db.findall(','.join(ftp.nlst()))
                 if files:
@@ -179,8 +147,9 @@ class AnonymousUsageTracker(object):
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 self['__submissions__'] += 1
-                self.logger.info('Submission to %s successful.' % ftpinfo['host'])
-                self.merge_part()
+                self.logger.info('Submission to %s successful.' % self._ftp['host'])
+                merge_databases(self.dbcon_master, self.dbcon_part)
+                os.remove(self.tracker_file_part)
                 return True
         except Exception as e:
             self.logger.error(e)

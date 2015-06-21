@@ -3,7 +3,6 @@ __author__ = 'calvin'
 import ftplib
 import sqlite3
 
-
 def create_table(dbcon, name, columns):
     """
     Create a table in the database.
@@ -25,12 +24,15 @@ def get_table_list(dbconn):
 
 
 def get_table_columns(dbconn, name):
-    cursor = dbconn.execute('select * from %s' % name)
+    try:
+        cursor = dbconn.execute('select * from %s' % name)
+    except sqlite3.OperationalError:
+        return None
+    cols = [c[0] for c in cursor.description]
 
     cur = dbconn.cursor()
     cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT 1;" % name)
 
-    cols = [c[0] for c in cursor.description]
     ctypes = []
     for c in cols:
         cur.execute("SELECT typeof(%s) FROM %s DESC LIMIT 1;" % (c, name))
@@ -64,13 +66,13 @@ def merge_databases(master, part):
     mcur = master.cursor()
     pcur = part.cursor()
 
-    tables = get_table_list(master)
+    tables = get_table_list(part)
     for table in tables:
+        cols = get_table_columns(part, table)
         pcur.execute("SELECT * FROM %s" % table)
-        cols = get_table_columns(part)
         rows = pcur.fetchall()
         if rows:
-            n = rows[0][1]
+            n = rows[-1][1]
             m = n + len(rows) - 1
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
@@ -78,6 +80,8 @@ def merge_databases(master, part):
             args = ("?," * len(cols))[:-1]
             query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
             mcur.executemany(query, rows)
+            print "Merging entries {n} through {m} of {name}".format(name=table, n=n, m=m)
 
     master.row_factory = part.row_factory = sqlite3.Row
     master.commit()
+

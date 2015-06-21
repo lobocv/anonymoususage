@@ -1,20 +1,6 @@
 __author__ = 'calvin'
 
-import sqlite3
 from .tools import *
-
-def get_table_list(dbconn):
-    cur = dbconn.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    return [item[0] for item in cur.fetchall()]
-
-
-def check_table_exists(dbcon, tablename):
-    dbcur = dbcon.cursor()
-    dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
-    result = dbcur.fetchone()
-    dbcur.close()
-    return result[0] == 1
 
 
 class Table(object):
@@ -29,7 +15,7 @@ class Table(object):
 
         self.count = self.get_table_count()
         if not check_table_exists(self.dbcon, name):
-            self.create_table(self.dbcon)
+            create_table(self.dbcon, name, self.table_args)
 
     def get_table_count(self):
         """
@@ -50,19 +36,6 @@ class Table(object):
                                                                   n=len(rows),
                                                                   rows='\n\t'.join(map(str, rows))))
         return len(rows)
-
-    def create_table(self, dbcon):
-        """
-        Create a table in the database.
-        :param dbcon: database
-        :return: True if a new table was created
-        """
-        try:
-            dbcon.execute("CREATE TABLE {name}({args})".format(name=self.name, args=self.table_args))
-            return True
-        except sqlite3.OperationalError as e:
-            self.logger.error(e)
-            return False
 
     def insert(self, value):
         """

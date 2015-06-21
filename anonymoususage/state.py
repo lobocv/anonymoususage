@@ -14,7 +14,7 @@ class State(Table):
         tracker[state_name] = 'ON'
         tracker[state_name] = 'OFF'
     """
-    table_args = "UUID INT, Count INT, State TEXT, Time TEXT"
+    table_args = ("UUID", "INT"), ("Count", "INT"), ("State", "TEXT"), ("Time", "TEXT")
 
     def __init__(self, *args, **kwargs):
         super(State, self).__init__(*args, **kwargs)
