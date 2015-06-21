@@ -8,6 +8,7 @@ import time
 import logging
 import re
 import threading
+import ConfigParser
 
 from .table import Table, check_table_exists
 from .state import State
@@ -15,7 +16,7 @@ from .statistic import Statistic
 
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
-                 logger=None, log_level=logging.INFO):
+                 config='', logger=None, log_level=logging.INFO):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -29,10 +30,16 @@ class AnonymousUsageTracker(object):
         self.tracker_file = self.filename + '.db'
         self.submit_interval = submit_interval
         self.check_interval = check_interval
-        self._ftp = {}
+
         self._tables = {}
         self._watcher = None
         self._watcher_enabled = False
+
+        # Load the configuration from a file if specified
+        if os.path.isfile(config):
+            self.load_configuration(config)
+        else:
+            self._ftp = {}
 
         if logger is None:
             self.logger = logging.getLogger('AnonymousUsage')
@@ -76,8 +83,9 @@ class AnonymousUsageTracker(object):
         """
         self._tables[key].insert(value)
 
-    def setup_ftp(self, host, user, passwd, path='', timeout=5):
-        self._ftp = dict(host=host, user=user, passwd=passwd, timeout=timeout, path=path)
+    def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
+                         timeout=int(timeout), path=path, port=int(port))
 
     def track_statistic(self, name):
         """
@@ -145,9 +153,9 @@ class AnonymousUsageTracker(object):
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
             ftpinfo = self._ftp
-            ftp = ftplib.FTP(host=ftpinfo['host'], user=ftpinfo['user'], passwd=ftpinfo['passwd'],
-                             timeout=ftpinfo['timeout'])
-
+            ftp = ftplib.FTP()
+            ftp.connect(host=ftpinfo['host'], port=ftpinfo['port'], timeout=ftpinfo['timeout'])
+            ftp.login(user=ftpinfo['user'], passwd=ftpinfo['passwd'], acct=ftpinfo['acct'])
             ftp.cwd(ftpinfo['path'])
             with open(self.tracker_file_part, 'rb') as _f:
                 regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
@@ -167,6 +175,16 @@ class AnonymousUsageTracker(object):
             self.logger.error(e)
             self.stop_watcher()
             return
+
+    def load_configuration(self, config):
+        """
+        Load FTP server credentials from a configuration file.
+        """
+        cfg = ConfigParser.ConfigParser()
+        with open(config, 'r') as _f:
+            cfg.readfp(_f)
+            if cfg.has_section('FTP'):
+                self.setup_ftp(**dict(cfg.items('FTP')))
 
     def enable(self):
         self.logger.info('Enabled.')
