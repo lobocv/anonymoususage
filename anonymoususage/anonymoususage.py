@@ -13,19 +13,29 @@ import ConfigParser
 from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
+from .exceptions import IntervalError
 
+
+CHECK_INTERVAL = datetime.timedelta(minutes=30)
 
 class AnonymousUsageTracker(object):
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
+    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
                  config='', logger=None, log_level=logging.INFO):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
         :param tracker_file: path to store the database
-        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be sent back
+        :param config: path to store the configuration file.
+        :param check_interval: datetime.timedelta object specifying how often the tracker should check to see if an
+                               upload is required
+        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
         """
-        if submit_interval is not None and not isinstance(submit_interval, datetime.timedelta):
-            raise ValueError('submit_interval must be a datetime.timedelta object.')
+
+        if not isinstance(submit_interval, datetime.timedelta):
+            raise IntervalError(submit_interval)
+        if not isinstance(check_interval, datetime.timedelta):
+            raise IntervalError(check_interval)
+
         self.uuid = uuid
         self.filename = os.path.splitext(tracker_file)[0]
         self.tracker_file = self.filename + '.db'
@@ -235,7 +245,7 @@ class AnonymousUsageTracker(object):
     def _watcher_thread(self):
         great_success = False
         while not great_success:
-            time.sleep(self.check_interval)
+            time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
             self.logger.info('Attempting to upload usage statistics.')
