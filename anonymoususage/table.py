@@ -1,7 +1,7 @@
 __author__ = 'calvin'
 
 import sqlite3
-
+from .tools import *
 
 def get_table_list(dbconn):
     cur = dbconn.cursor()
@@ -19,7 +19,7 @@ def check_table_exists(dbcon, tablename):
 
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
-    table_args = "UUID INT, Count INT, Time TEXT"
+    table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
 
     def __init__(self, name, tracker, *args, **kwargs):
         self.tracker = tracker
