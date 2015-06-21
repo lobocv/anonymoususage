@@ -14,6 +14,7 @@ from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
 
+
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
                  config='', logger=None, log_level=logging.INFO):
@@ -31,6 +32,7 @@ class AnonymousUsageTracker(object):
         self.submit_interval = submit_interval
         self.check_interval = check_interval
 
+        self.regex_db = re.compile(r'%s_\d+.db' % self.uuid)
         self._tables = {}
         self._watcher = None
         self._watcher_enabled = False
@@ -158,8 +160,7 @@ class AnonymousUsageTracker(object):
             ftp.login(user=ftpinfo['user'], passwd=ftpinfo['passwd'], acct=ftpinfo['acct'])
             ftp.cwd(ftpinfo['path'])
             with open(self.tracker_file_part, 'rb') as _f:
-                regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
-                files = regex_db.findall(','.join(ftp.nlst()))
+                files = self.regex_db.findall(','.join(ftp.nlst()))
                 if files:
                     regex_number = re.compile(r'_\d+')
                     n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
