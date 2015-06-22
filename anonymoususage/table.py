@@ -14,11 +14,11 @@ class Table(object):
         self.dbcon = self.tracker.dbcon
         self.name = name
 
-        self.count = self.get_table_count()
+        self.count = self.get_number_of_rows()
         if not check_table_exists(self.dbcon, name):
             create_table(self.dbcon, name, self.table_args)
 
-    def get_table_count(self):
+    def get_number_of_rows(self):
         """
         Attempt to load the statistic from the database.
         :return: Number of entries for the statistic
