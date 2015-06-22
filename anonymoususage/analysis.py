@@ -1,9 +1,19 @@
 __author__ = 'calvin'
 
-import sqlite3
+
+import tempfile
 import re
 import ConfigParser
+import os
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('AnonymousUsage')
+logger.setLevel(logging.DEBUG)
 from tools import *
+
+
+
 
 class DataManager(object):
 
@@ -39,12 +49,35 @@ class DataManager(object):
         all_files = ' '.join(files)
         uuids = set(re.findall(r'\s(.*?)_\d+', all_files))
 
+        tmpdir = tempfile.mkdtemp('anonymoususage')
         for uuid in uuids:
-            partial_dbs = re.findall(r'[^\s].*?_\d+.db', all_files)
-            for db in partial_dbs:
-                dbconn = sqlite3.connect(db)
-                get_table_list(dbconn)
-                tables = get_table_list()
+
+            partial_dbs = re.findall(r'%s_\d+.db' % uuid, all_files)
+            if len(partial_dbs):
+                logger.debug('Consolidating UUID %s. %d partial databases found.' % (uuid, len(partial_dbs)))
+                # Look for the master database, if there isn't one, use one of the partials as the new master
+                masterfilename = '%s.db' % uuid if '%s.db' % uuid in files else partial_dbs[0]
+
+                # Download the master database
+                local_master_path = os.path.join(tmpdir, masterfilename)
+                with open(local_master_path, 'wb') as _f:
+                    ftp.retrlines('RETR %s' % masterfilename, _f.write)
+
+                dbmaster = sqlite3.connect(local_master_path)
+
+                for db in partial_dbs:
+                    if db == masterfilename:
+                        continue
+                    # Download each partial database and merge it with the local master
+                    logger.debug('Consolidating part %s' % db)
+                    local_partial_path = os.path.join(tmpdir, db)
+                    with open(local_partial_path, 'wb') as _f:
+                        ftp.retrlines('RETR %s' % db, _f.write)
+                    dbpart = sqlite3.connect(local_partial_path)
+                    merge_databases(dbmaster, dbpart)
+                    dbpart.close()
+                dbmaster.close()
+
 
 
 

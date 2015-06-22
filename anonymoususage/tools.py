@@ -5,6 +5,7 @@ import sqlite3
 import logging
 
 logger = logging.getLogger('AnonymousUsage')
+logger.setLevel(logging.DEBUG)
 
 def create_table(dbcon, name, columns):
     """
@@ -26,22 +27,16 @@ def get_table_list(dbconn):
     return [item[0] for item in cur.fetchall()]
 
 
-def get_table_columns(dbconn, name):
-    try:
-        cursor = dbconn.execute('select * from %s' % name)
-    except sqlite3.OperationalError:
-        return None
-    cols = [c[0] for c in cursor.description]
-
+def get_table_columns(dbconn, tablename):
+    """
+    Return a list of tuples specifying the column name and type
+    :return:
+    """
     cur = dbconn.cursor()
-    cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT 1;" % name)
-
-    ctypes = []
-    for c in cols:
-        cur.execute("SELECT typeof(%s) FROM %s DESC LIMIT 1;" % (c, name))
-        ctypes.append(cur.fetchone()[0].upper())
-
-    return zip(cols, ctypes)
+    cur.execute("PRAGMA table_info(%s);" % tablename)
+    info = cur.fetchall()
+    cols = [(i[1], i[2]) for i in info]
+    return cols
 
 
 def check_table_exists(dbcon, tablename):
@@ -91,7 +86,6 @@ def merge_databases(master, part):
             query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
             mcur.executemany(query, rows)
             logger.debug("Merging {m} rows of table {name} into master".format(name=table, m=len(rows)))
-
 
     master.row_factory = part.row_factory = sqlite3.Row
     master.commit()
