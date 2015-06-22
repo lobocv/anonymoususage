@@ -64,6 +64,13 @@ def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
     logger.debug('Login to %s successful.' % host)
     return ftp
 
+
+def get_rows(dbconn, tablename):
+    cursor = dbconn.cursor()
+    cursor.execute("SELECT * FROM %s" % tablename)
+    rows = cursor.fetchall()
+    return rows
+
 def merge_databases(master, part):
     master.row_factory = part.row_factory = None
     mcur = master.cursor()

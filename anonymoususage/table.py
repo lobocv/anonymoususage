@@ -25,13 +25,9 @@ class Table(object):
         """
         rows = []
         if check_table_exists(self.tracker.dbcon_master, self.name):
-            cursor = self.tracker.dbcon_master.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
+            rows.extend(get_rows(self.tracker.dbcon_master, self.name))
         if check_table_exists(self.tracker.dbcon_part, self.name):
-            cursor = self.tracker.dbcon_part.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
+            rows.extend(get_rows(self.tracker.dbcon_part, self.name))
 
         logger.debug("{name}: {n} table entries found".format(name=self.name,
                                                                   n=len(rows),
