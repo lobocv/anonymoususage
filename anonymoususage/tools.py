@@ -66,6 +66,7 @@ def get_rows(dbconn, tablename):
     rows = cursor.fetchall()
     return rows
 
+
 def merge_databases(master, part):
     master.row_factory = part.row_factory = None
     mcur = master.cursor()
@@ -78,7 +79,7 @@ def merge_databases(master, part):
         pcur.execute("SELECT * FROM %s" % table)
         rows = pcur.fetchall()
         if rows:
-            logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[-1][1]))
+            logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
 
