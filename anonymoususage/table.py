@@ -11,12 +11,11 @@ class Table(object):
 
     def __init__(self, name, tracker, *args, **kwargs):
         self.tracker = tracker
-        self.dbcon = self.tracker.dbcon
         self.name = name
 
         self.count = self.get_number_of_rows()
-        if not check_table_exists(self.dbcon, name):
-            create_table(self.dbcon, name, self.table_args)
+        if not check_table_exists(self.tracker.dbcon, name):
+            create_table(self.tracker.dbcon, name, self.table_args)
 
     def get_number_of_rows(self):
         """

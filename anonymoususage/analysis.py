@@ -2,6 +2,7 @@ __author__ = 'calvin'
 
 
 import tempfile
+import shutil
 import re
 import ConfigParser
 import os
@@ -35,7 +36,7 @@ class DataManager(object):
         self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
 
-    def consolidate(self):
+    def consolidate(self, delete_parts=True):
         """
         Consolidate partial database information into a single .db file.
         """
@@ -47,7 +48,7 @@ class DataManager(object):
 
         files = ftp.nlst()
         all_files = ' '.join(files)
-        uuids = set(re.findall(r'\s(.*?)_\d+', all_files))
+        uuids = set(re.findall(r'\s(.*?)[_\d]*.db', all_files))
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
         for uuid in uuids:
@@ -61,7 +62,7 @@ class DataManager(object):
                 # Download the master database
                 local_master_path = os.path.join(tmpdir, masterfilename)
                 with open(local_master_path, 'wb') as _f:
-                    ftp.retrlines('RETR %s' % masterfilename, _f.write)
+                    ftp.retrbinary('RETR %s' % masterfilename, _f.write)
 
                 dbmaster = sqlite3.connect(local_master_path)
 
@@ -72,13 +73,29 @@ class DataManager(object):
                     logger.debug('Consolidating part %s' % db)
                     local_partial_path = os.path.join(tmpdir, db)
                     with open(local_partial_path, 'wb') as _f:
-                        ftp.retrlines('RETR %s' % db, _f.write)
+                        ftp.retrbinary('RETR %s' % db, _f.write)
                     dbpart = sqlite3.connect(local_partial_path)
                     merge_databases(dbmaster, dbpart)
                     dbpart.close()
                 dbmaster.close()
 
+            # Upload the merged local master back to the FTP
+            logger.debug('Uploading master database for UUID %s' % uuid)
+            with open(local_master_path, 'rb') as _f:
+                ftp.storbinary('STOR %s.db' % uuid, _f)
+            try:
+                ftp.mkd('.merged')
+            except ftplib.error_perm:
+                pass
 
+            for db in partial_dbs:
+                if delete_parts:
+                    ftp.delete(db)
+                else:
+                    ftp.rename(db, os.path.join('.merged', db))
+
+        shutil.rmtree(tmpdir)
+        ftp.close()
 
 
 

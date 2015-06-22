@@ -17,15 +17,15 @@ class Statistic(Table):
     def __add__(self, other):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         self.count += other
-        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
+        self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
                                                                                    self.count,
                                                                                    dt)))
-        self.dbcon.commit()
+        self.tracker.dbcon.commit()
         return self
 
     def __sub__(self, other):
         count = self.count + 1 - other
-        self.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
+        self.tracker.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
         self.count -= other
-        self.dbcon.commit()
+        self.tracker.dbcon.commit()
         return self
