@@ -8,6 +8,7 @@ import time
 import logging
 import re
 import threading
+import sys
 
 from .table import Table, check_table_exists
 from .state import State
@@ -15,7 +16,7 @@ from .statistic import Statistic
 
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
-                 logger=None, log_level=logging.INFO):
+                 logger=None, log_level=logging.DEBUG):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -37,6 +38,12 @@ class AnonymousUsageTracker(object):
         if logger is None:
             self.logger = logging.getLogger('AnonymousUsage')
             self.logger.setLevel(log_level)
+            ch = logging.StreamHandler(sys.stdout)
+            ch.setLevel(logging.DEBUG)
+            formatter = logging.Formatter(fmt='[%(levelname)-8s] %(asctime)s - %(message)s',
+                                          datefmt='[%m/%d/%Y] [%I:%M:%S %p]')
+            ch.setFormatter(formatter)
+            self.logger.addHandler(ch)
         else:
             self.logger = logger
 
