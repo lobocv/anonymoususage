@@ -3,6 +3,7 @@ __author__ = 'calvin'
 import datetime
 
 from .table import Table
+import sqlite3
 
 
 class State(Table):
@@ -34,12 +35,17 @@ class State(Table):
             # Don't add redundant information
             return
         dt = datetime.datetime.now().strftime(self.time_fmt)
-        self.count += 1
-        self.state = value
-        self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
-                                                                                   self.count,
-                                                                                   self.state,
-                                                                                   dt)))
-        self.dbcon.commit()
-        self.logger.debug("{name} state set to {value}".format(name=self.name, value=value))
+        try:
+            self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
+                                                                                              self.count+1,
+                                                                                              value,
+                                                                                              dt)))
+            self.dbcon.commit()
+
+        except sqlite3.Error as e:
+            self.logger.error(e)
+        else:
+            self.state = value
+            self.count += 1
+            self.logger.debug("{name} state set to {value}".format(name=self.name, value=value))
         return self
