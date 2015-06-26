@@ -1,68 +1,37 @@
 __author__ = 'calvin'
 
-import sqlite3
+from .tools import *
 
-
-def get_table_list(dbconn):
-    cur = dbconn.cursor()
-    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    return [item[0] for item in cur.fetchall()]
-
-
-def check_table_exists(dbcon, tablename):
-    dbcur = dbcon.cursor()
-    dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
-    result = dbcur.fetchone()
-    dbcur.close()
-    return result[0] == 1
+logger = logging.getLogger('AnonymousUsage')
 
 
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
-    table_args = "UUID INT, Count INT, Time TEXT"
+    table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
 
     def __init__(self, name, tracker, *args, **kwargs):
         self.tracker = tracker
-        self.dbcon = self.tracker.dbcon
         self.name = name
-        self.logger = tracker.logger
 
-        self.count = self.get_table_count()
-        if not check_table_exists(self.dbcon, name):
-            self.create_table(self.dbcon)
+        self.count = self.get_number_of_rows()
+        if not check_table_exists(self.tracker.dbcon, name):
+            create_table(self.tracker.dbcon, name, self.table_args)
 
-    def get_table_count(self):
+    def get_number_of_rows(self):
         """
         Attempt to load the statistic from the database.
         :return: Number of entries for the statistic
         """
         rows = []
         if check_table_exists(self.tracker.dbcon_master, self.name):
-            cursor = self.tracker.dbcon_master.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
+            rows.extend(get_rows(self.tracker.dbcon_master, self.name))
         if check_table_exists(self.tracker.dbcon_part, self.name):
-            cursor = self.tracker.dbcon_part.cursor()
-            cursor.execute("SELECT * FROM %s" % self.name)
-            rows.extend(cursor.fetchall())
+            rows.extend(get_rows(self.tracker.dbcon_part, self.name))
 
-        self.logger.debug("{name}: {n} table entries found".format(name=self.name,
+        logger.debug("{name}: {n} table entries found".format(name=self.name,
                                                                   n=len(rows),
                                                                   rows='\n\t'.join(map(str, rows))))
         return len(rows)
-
-    def create_table(self, dbcon):
-        """
-        Create a table in the database.
-        :param dbcon: database
-        :return: True if a new table was created
-        """
-        try:
-            dbcon.execute("CREATE TABLE {name}({args})".format(name=self.name, args=self.table_args))
-            return True
-        except sqlite3.OperationalError as e:
-            self.logger.error(e)
-            return False
 
     def insert(self, value):
         """
@@ -82,7 +51,6 @@ class Table(object):
         # Get values from the partial db first
         if check_table_exists(self.tracker.dbcon_part, self.name):
             cur = self.tracker.dbcon_part.cursor()
-            # cur.execute("SELECT * FROM %s" % self.name)
             cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
             rows.extend(cur.fetchall())
         # Then add rows from the master if required
@@ -92,4 +60,4 @@ class Table(object):
             cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
             rows.extend(cur.fetchall())
 
-        return rows
+        return rows[-n:]

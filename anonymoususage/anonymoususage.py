@@ -1,40 +1,57 @@
 __author__ = 'calvin'
 
-import ftplib
 import os
-import sqlite3
 import datetime
 import time
+import sqlite3
 import logging
 import re
 import threading
-import sys
+import ConfigParser
 
 from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
+from .exceptions import IntervalError
+from .tools import *
+
+CHECK_INTERVAL = datetime.timedelta(minutes=30)
+logger = logging.getLogger('AnonymousUsage')
+logger.setLevel(logging.DEBUG)
 
 class AnonymousUsageTracker(object):
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=60 * 60,
-                 logger=None, log_level=logging.DEBUG):
+    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
+                 config=''):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
         :param tracker_file: path to store the database
-        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be sent back
+        :param config: path to store the configuration file.
+        :param check_interval: datetime.timedelta object specifying how often the tracker should check to see if an
+                               upload is required
+        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
         """
-        if submit_interval is not None and not isinstance(submit_interval, datetime.timedelta):
-            raise ValueError('submit_interval must be a datetime.timedelta object.')
+
+        if not isinstance(submit_interval, datetime.timedelta):
+            raise IntervalError(submit_interval)
+        if not isinstance(check_interval, datetime.timedelta):
+            raise IntervalError(check_interval)
+
         self.uuid = uuid
         self.filename = os.path.splitext(tracker_file)[0]
         self.tracker_file = self.filename + '.db'
         self.submit_interval = submit_interval
         self.check_interval = check_interval
-        self._ftp = {}
+
+        self.regex_db = re.compile(r'%s_\d+.db' % self.uuid)
         self._tables = {}
         self._watcher = None
         self._watcher_enabled = False
 
+        # Load the configuration from a file if specified
+        if os.path.isfile(config):
+            self.load_configuration(config)
+            
         if logger is None:
             self.logger = logging.getLogger('AnonymousUsage')
             self.logger.setLevel(log_level)
@@ -45,7 +62,7 @@ class AnonymousUsageTracker(object):
             ch.setFormatter(formatter)
             self.logger.addHandler(ch)
         else:
-            self.logger = logger
+            self._ftp = {}
 
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.tracker_file_master = self.filename + '.db'
@@ -66,9 +83,9 @@ class AnonymousUsageTracker(object):
         if self._requires_submission():
             try:
                 last_submission = self['__submissions__'].get_last(1)[0]['Time']
-                self.logger.info('A submission is overdue. Last submission was %s' % last_submission)
+                logger.info('A submission is overdue. Last submission was %s' % last_submission)
             except IndexError:
-                self.logger.info('A submission is overdue')
+                logger.info('A submission is overdue')
             self.start_watcher()
 
     def __getitem__(self, item):
@@ -83,8 +100,9 @@ class AnonymousUsageTracker(object):
         """
         self._tables[key].insert(value)
 
-    def setup_ftp(self, host, user, passwd, path='', timeout=5):
-        self._ftp = dict(host=host, user=user, passwd=passwd, timeout=timeout, path=path)
+    def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
+                         timeout=int(timeout), path=path, port=int(port))
 
     def track_statistic(self, name):
         """
@@ -115,34 +133,6 @@ class AnonymousUsageTracker(object):
                     info[table] = {'nrows': nrows}
         return info
 
-    def merge_part(self):
-        """
-        Merge the partial database into the master.
-        """
-        if self.submit_interval:
-            master = self.dbcon_master
-            part = self.dbcon_part
-            master.row_factory = part.row_factory = None
-            mcur = master.cursor()
-            pcur = part.cursor()
-            for table, stat in self._tables.items():
-                pcur.execute("SELECT * FROM %s" % table)
-                rows = pcur.fetchall()
-                if rows:
-                    n = rows[0][1]
-                    m = n + len(rows) - 1
-                    self.logger.debug("Merging entries {n} through {m} of {name}".format(name=table, n=n, m=m))
-                    if not check_table_exists(master, table):
-                        stat.create_table(master)
-
-                    args = ("?," * len(stat.table_args.split(',')))[:-1]
-                    query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
-                    mcur.executemany(query, rows)
-
-            master.row_factory = part.row_factory = sqlite3.Row
-            master.commit()
-            os.remove(self.filename + '.part.db')
-
     def ftp_submit(self):
         """
         Upload the database to the FTP server. Only submit new information contained in the partial database.
@@ -151,14 +141,10 @@ class AnonymousUsageTracker(object):
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            ftpinfo = self._ftp
-            ftp = ftplib.FTP(host=ftpinfo['host'], user=ftpinfo['user'], passwd=ftpinfo['passwd'],
-                             timeout=ftpinfo['timeout'])
-
-            ftp.cwd(ftpinfo['path'])
+            ftp = login_ftp(**self._ftp)
+            self.dbcon_part.close()
             with open(self.tracker_file_part, 'rb') as _f:
-                regex_db = re.compile(r'%s\_\d+.db' % self.uuid)
-                files = regex_db.findall(','.join(ftp.nlst()))
+                files = self.regex_db.findall(','.join(ftp.nlst()))
                 if files:
                     regex_number = re.compile(r'_\d+')
                     n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
@@ -166,28 +152,40 @@ class AnonymousUsageTracker(object):
                     n = 1
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
+                self.dbcon = self.dbcon_part = sqlite3.connect(self.tracker_file_part)
                 self['__submissions__'] += 1
-                self.logger.info('Submission to %s successful.' % ftpinfo['host'])
-                self.merge_part()
+                logger.info('Submission to %s successful.' % self._ftp['host'])
+                merge_databases(self.dbcon_master, self.dbcon_part)
+                os.remove(self.tracker_file_part)
                 return True
         except Exception as e:
-            self.logger.error(e)
+            logger.error(e)
             self.stop_watcher()
             return
 
+    def load_configuration(self, config):
+        """
+        Load FTP server credentials from a configuration file.
+        """
+        cfg = ConfigParser.ConfigParser()
+        with open(config, 'r') as _f:
+            cfg.readfp(_f)
+            if cfg.has_section('FTP'):
+                self.setup_ftp(**dict(cfg.items('FTP')))
+
     def enable(self):
-        self.logger.info('Enabled.')
+        logger.info('Enabled.')
         self.start_watcher()
 
     def disable(self):
-        self.logger.info('Disabled.')
+        logger.info('Disabled.')
         self.stop_watcher()
 
     def start_watcher(self):
         """
         Start the watcher thread that tries to upload usage statistics.
         """
-        self.logger.info('Starting watcher.')
+        logger.info('Starting watcher.')
         if self._watcher and self._watcher.is_alive:
             self._watcher_enabled = True
         else:
@@ -202,7 +200,7 @@ class AnonymousUsageTracker(object):
         """
         if self._watcher:
             self._watcher_enabled = False
-            self.logger.info('Stopping watcher.')
+            logger.info('Stopping watcher.')
 
     def _requires_submission(self):
         """
@@ -223,13 +221,13 @@ class AnonymousUsageTracker(object):
     def _watcher_thread(self):
         great_success = False
         while not great_success:
-            time.sleep(self.check_interval)
+            time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
-            self.logger.info('Attempting to upload usage statistics.')
+            logger.info('Attempting to upload usage statistics.')
             if self._ftp:
                 great_success = self.ftp_submit()
-        self.logger.info('Watcher stopped.')
+        logger.info('Watcher stopped.')
         self._watcher = None
 
 
