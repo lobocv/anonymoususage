@@ -48,12 +48,14 @@ class DataManager(object):
 
         files = ftp.nlst()
         all_files = ' '.join(files)
-        uuids = set(re.findall(r'\s(.*?)[_\d]*.db', all_files))
+
+        uuid_regex = re.compile(r'\s(.*?)_?\d*.db')
+        uuids = set(uuid_regex.findall(all_files))
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
         for uuid in uuids:
-
-            partial_dbs = re.findall(r'%s_\d+.db' % uuid, all_files)
+            partial_regex = re.compile(r'%s_\d+.db' % uuid)
+            partial_dbs = partial_regex.findall(all_files)
             if len(partial_dbs):
                 logger.debug('Consolidating UUID %s. %d partial databases found.' % (uuid, len(partial_dbs)))
                 # Look for the master database, if there isn't one, use one of the partials as the new master
@@ -79,20 +81,20 @@ class DataManager(object):
                     dbpart.close()
                 dbmaster.close()
 
-            # Upload the merged local master back to the FTP
-            logger.debug('Uploading master database for UUID %s' % uuid)
-            with open(local_master_path, 'rb') as _f:
-                ftp.storbinary('STOR %s.db' % uuid, _f)
-            try:
-                ftp.mkd('.merged')
-            except ftplib.error_perm:
-                pass
+                # Upload the merged local master back to the FTP
+                logger.debug('Uploading master database for UUID %s' % uuid)
+                with open(local_master_path, 'rb') as _f:
+                    ftp.storbinary('STOR %s.db' % uuid, _f)
+                try:
+                    ftp.mkd('.merged')
+                except ftplib.error_perm:
+                    pass
 
-            for db in partial_dbs:
-                if delete_parts:
-                    ftp.delete(db)
-                else:
-                    ftp.rename(db, os.path.join('.merged', db))
+                for db in partial_dbs:
+                    if delete_parts:
+                        ftp.delete(db)
+                    else:
+                        ftp.rename(db, os.path.join('.merged', db))
 
         shutil.rmtree(tmpdir)
         ftp.close()
