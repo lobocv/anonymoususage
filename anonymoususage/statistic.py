@@ -19,9 +19,9 @@ class Statistic(Table):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         count = self.count + i
         try:
-            self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
+            self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
                                                                         args=(self.tracker.uuid, count, dt)))
-            self.dbcon.commit()
+            self.tracker.dbcon.commit()
         except sqlite3.Error as e:
             self.logger.error(e)
         else:
@@ -31,9 +31,9 @@ class Statistic(Table):
     def __sub__(self, i):
         count = self.count + 1 - i
         try:
-            self.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
+            self.tracker.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
             self.count -= i
-            self.dbcon.commit()
+            self.tracker.dbcon.commit()
         except sqlite3.Error as e:
             self.logger.error(e)
         return self

@@ -36,11 +36,11 @@ class State(Table):
             return
         dt = datetime.datetime.now().strftime(self.time_fmt)
         try:
-            self.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
+            self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
                                                                                               self.count+1,
                                                                                               value,
                                                                                               dt)))
-            self.dbcon.commit()
+            self.tracker.dbcon.commit()
 
         except sqlite3.Error as e:
             self.logger.error(e)
