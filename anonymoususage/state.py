@@ -1,9 +1,13 @@
 __author__ = 'calvin'
 
 import datetime
+import sqlite3
+import logging
 
 from .table import Table
-import sqlite3
+
+
+logger = logging.getLogger('AnonymousUsage')
 
 
 class State(Table):
@@ -43,9 +47,9 @@ class State(Table):
             self.tracker.dbcon.commit()
 
         except sqlite3.Error as e:
-            self.logger.error(e)
+            logger.error(e)
         else:
             self.state = value
             self.count += 1
-            self.logger.debug("{name} state set to {value}".format(name=self.name, value=value))
+            logger.debug("{name} state set to {value}".format(name=self.name, value=value))
         return self

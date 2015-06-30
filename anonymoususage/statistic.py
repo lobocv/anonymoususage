@@ -2,8 +2,11 @@ __author__ = 'calvin'
 
 import datetime
 import sqlite3
+import logging
 
 from .table import Table
+
+logger = logging.getLogger('AnonymousUsage')
 
 
 class Statistic(Table):
@@ -23,7 +26,7 @@ class Statistic(Table):
                                                                         args=(self.tracker.uuid, count, dt)))
             self.tracker.dbcon.commit()
         except sqlite3.Error as e:
-            self.logger.error(e)
+            logger.error(e)
         else:
             self.count = count
         return self
@@ -35,5 +38,5 @@ class Statistic(Table):
             self.count -= i
             self.tracker.dbcon.commit()
         except sqlite3.Error as e:
-            self.logger.error(e)
+            logger.error(e)
         return self
