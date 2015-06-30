@@ -19,12 +19,13 @@ from .tools import *
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
 logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter(fmt='[%(levelname)-8s] %(asctime)s - %(message)s',
-                              datefmt='[%m/%d/%Y] [%I:%M:%S %p]')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+# ch = logging.StreamHandler(sys.stdout)
+# ch.setLevel(logging.DEBUG)
+# formatter = logging.Formatter(fmt='[%(levelname)-8s] %(asctime)s - %(message)s',
+#                               datefmt='[%m/%d/%Y] [%I:%M:%S %p]')
+# ch.setFormatter(formatter)
+# logger.addHandler(ch)
+
 
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
