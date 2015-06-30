@@ -97,6 +97,12 @@ class AnonymousUsageTracker(object):
         """
         self._tables[key].insert(value)
 
+    def close(self):
+        self.dbcon_part.commit()
+        self.dbcon_part.close()
+        self.dbcon_master.commit()
+        self.dbcon_master.close()
+
     def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
         self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
@@ -139,7 +145,6 @@ class AnonymousUsageTracker(object):
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
             ftp = login_ftp(**self._ftp)
-            self.dbcon_part.close()
             with open(self.tracker_file_part, 'rb') as _f:
                 files = self.regex_db.findall(','.join(ftp.nlst()))
                 if files:
@@ -149,16 +154,23 @@ class AnonymousUsageTracker(object):
                     n = 1
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
-                self.dbcon = self.dbcon_part = sqlite3.connect(self.tracker_file_part)
                 self['__submissions__'] += 1
                 logger.info('Submission to %s successful.' % self._ftp['host'])
+
+                # Merge the local partial database into master
                 merge_databases(self.dbcon_master, self.dbcon_part)
+
+                # Remove the partial file and create a new one
                 os.remove(self.tracker_file_part)
+                self.dbcon = self.dbcon_part = sqlite3.connect(self.tracker_file_part, check_same_thread=False)
+                for table in self._tables.itervalues():
+                    create_table(self.dbcon_part, table.name, table.table_args)
+
                 return True
         except Exception as e:
             logger.error(e)
             self.stop_watcher()
-            return
+            return False
 
     def load_configuration(self, config):
         """
