@@ -218,6 +218,13 @@ class AnonymousUsageTracker(object):
         If no submissions have ever been made, check if the database last modified time is greater than the
         submission interval.
         """
+        tables = get_table_list(self.dbcon_part)
+        nrows = 0
+        for table in tables:
+            if table == '__submissions__':
+                continue
+            nrows += len(get_rows(self.dbcon_part, table))
+
         t0 = datetime.datetime.now()
         s = self['__submissions__']
         last_submission = s.get_last(1)
@@ -226,7 +233,9 @@ class AnonymousUsageTracker(object):
         else:
             t_ref = datetime.datetime.fromtimestamp(os.path.getmtime(self.tracker_file_master))
 
-        return (t0 - t_ref).total_seconds() > self.submit_interval.total_seconds()
+        submission_interval_passed = (t0 - t_ref).total_seconds() > self.submit_interval.total_seconds()
+        submission_required = bool(submission_interval_passed and nrows)
+        return submission_required
 
     def _watcher_thread(self):
         great_success = False
