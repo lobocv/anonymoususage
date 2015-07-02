@@ -78,13 +78,10 @@ class AnonymousUsageTracker(object):
             self.dbcon = self.dbcon_master
 
         self.track_statistic('__submissions__')
-        if self._requires_submission():
-            try:
-                last_submission = self['__submissions__'].get_last(1)[0]['Time']
-                logger.info('A submission is overdue. Last submission was %s' % last_submission)
-            except IndexError:
-                logger.info('A submission is overdue')
-            self.start_watcher()
+        if self._requires_submission() and self._ftp:
+            self.ftp_submit()
+
+        self.start_watcher()
 
     def __getitem__(self, item):
         """
@@ -156,7 +153,7 @@ class AnonymousUsageTracker(object):
                 new_filename = self.uuid + '_%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 self['__submissions__'] += 1
-                logger.info('Submission to %s successful.' % self._ftp['host'])
+                logger.debug('Submission to %s successful.' % self._ftp['host'])
 
                 # Merge the local partial database into master
                 merge_databases(self.dbcon_master, self.dbcon_part)
@@ -184,21 +181,21 @@ class AnonymousUsageTracker(object):
                 self.setup_ftp(**dict(cfg.items('FTP')))
 
     def enable(self):
-        logger.info('Enabled.')
+        logger.debug('Enabled.')
         self.start_watcher()
 
     def disable(self):
-        logger.info('Disabled.')
+        logger.debug('Disabled.')
         self.stop_watcher()
 
     def start_watcher(self):
         """
         Start the watcher thread that tries to upload usage statistics.
         """
-        logger.info('Starting watcher.')
         if self._watcher and self._watcher.is_alive:
             self._watcher_enabled = True
         else:
+            logger.debug('Starting watcher.')
             self._watcher = threading.Thread(target=self._watcher_thread, name='usage_tracker')
             self._watcher.setDaemon(True)
             self._watcher_enabled = True
@@ -210,7 +207,7 @@ class AnonymousUsageTracker(object):
         """
         if self._watcher:
             self._watcher_enabled = False
-            logger.info('Stopping watcher.')
+            logger.debug('Stopping watcher.')
 
     def _requires_submission(self):
         """
@@ -224,29 +221,37 @@ class AnonymousUsageTracker(object):
             if table == '__submissions__':
                 continue
             nrows += len(get_rows(self.dbcon_part, table))
+        if nrows:
+            logger.debug('%d new statistics were added since the last submission.' % nrows)
+        else:
+            logger.debug('No new statistics were added since the last submission.')
 
         t0 = datetime.datetime.now()
         s = self['__submissions__']
         last_submission = s.get_last(1)
         if last_submission:
+            logger.debug('Last submission was %s' % last_submission[0]['Time'])
             t_ref = datetime.datetime.strptime(last_submission[0]['Time'], Table.time_fmt)
         else:
             t_ref = datetime.datetime.fromtimestamp(os.path.getmtime(self.tracker_file_master))
 
         submission_interval_passed = (t0 - t_ref).total_seconds() > self.submit_interval.total_seconds()
         submission_required = bool(submission_interval_passed and nrows)
+        if submission_required:
+            logger.debug('A submission is overdue.')
+        else:
+            logger.debug('No submission required.')
         return submission_required
 
     def _watcher_thread(self):
-        great_success = False
-        while not great_success:
+        while 1:
             time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
-            logger.info('Attempting to upload usage statistics.')
-            if self._ftp:
-                great_success = self.ftp_submit()
-        logger.info('Watcher stopped.')
+            if self._ftp and self._requires_submission():
+                logger.debug('Attempting to upload usage statistics.')
+                self.ftp_submit()
+        logger.debug('Watcher stopped.')
         self._watcher = None
 
 

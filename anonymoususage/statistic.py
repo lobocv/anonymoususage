@@ -29,14 +29,18 @@ class Statistic(Table):
             logger.error(e)
         else:
             self.count = count
+            logging.debug('{s.name} count set to {s.count}'.format(s=self))
+
         return self
 
     def __sub__(self, i):
         count = self.count + 1 - i
         try:
             self.tracker.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
-            self.count -= i
             self.tracker.dbcon.commit()
         except sqlite3.Error as e:
             logger.error(e)
+        else:
+            self.count = count
+            logging.debug('{s.name} count set to {s.count}'.format(s=self))
         return self
