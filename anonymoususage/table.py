@@ -1,5 +1,7 @@
 __author__ = 'calvin'
 
+import logging
+
 from .tools import *
 
 logger = logging.getLogger('AnonymousUsage')
