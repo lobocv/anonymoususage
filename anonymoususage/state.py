@@ -39,11 +39,12 @@ class State(Table):
             # Don't add redundant information
             return
         dt = datetime.datetime.now().strftime(self.time_fmt)
+
         try:
             self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name, args=(self.tracker.uuid,
-                                                                                              self.count+1,
-                                                                                              value,
-                                                                                              dt)))
+                                                                                                      self.count+1,
+                                                                                                      str(value),
+                                                                                                      dt)))
             self.tracker.dbcon.commit()
 
         except sqlite3.Error as e:
