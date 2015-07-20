@@ -7,6 +7,7 @@ import re
 import ConfigParser
 import os
 import logging
+from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('AnonymousUsage')
@@ -47,15 +48,18 @@ class DataManager(object):
         ftp.cwd(ftpinfo['path'])
 
         files = ftp.nlst()
-        all_files = ' '.join(files)
 
-        uuid_regex = re.compile(r'\s(.*?)_?\d*.db')
-        uuids = set(uuid_regex.findall(all_files))
+        uuid_regex = re.compile(r'(.*?)_\d*.db')
+        uuids = defaultdict(list)
+        for f in files:
+            uuid = uuid_regex.findall(f)
+            if uuid:
+                uuids[uuid[0]].append(f)
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
-        for uuid in uuids:
-            partial_regex = re.compile(r'%s_\d+.db' % uuid)
-            partial_dbs = partial_regex.findall(all_files)
+        for uuid, partial_dbs in uuids.iteritems():
+            # partial_regex = re.compile(r'%s_\d+.db' % uuid)
+            # partial_dbs = partial_regex.findall(all_files)
             if len(partial_dbs):
                 logger.debug('Consolidating UUID %s. %d partial databases found.' % (uuid, len(partial_dbs)))
                 # Look for the master database, if there isn't one, use one of the partials as the new master
@@ -102,6 +106,6 @@ class DataManager(object):
 
 
 if __name__ == '__main__':
-    dm = DataManager('../anonymoususage.cfg')
+    dm = DataManager('/home/calvin/smc/pygame/LMX/server.cfg')
 
     dm.consolidate()
