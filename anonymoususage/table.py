@@ -43,7 +43,7 @@ class Table(object):
         """
         pass
 
-    def get_last(self, n):
+    def get_last(self, n=1):
         """
         Retrieve the last n rows from the table
         :param n: number of rows to return
@@ -63,3 +63,10 @@ class Table(object):
             rows.extend(cur.fetchall())
 
         return rows[-n:]
+
+    def get_count(self):
+        row = self.get_last()
+        if row:
+            return row[0]['Count']
+        else:
+            return 0

@@ -87,7 +87,7 @@ class AnonymousUsageTracker(object):
         """
         Returns the Table object with name `item`
         """
-        return self._tables[item]
+        return self._tables.get(item, None)
 
     def __setitem__(self, key, value):
         """
