@@ -1,4 +1,7 @@
 __version__ = '1.0'
 
-from anonymoususage import AnonymousUsageTracker
-from exceptions import *
+try:
+    from anonymoususage import AnonymousUsageTracker
+    from exceptions import *
+except ImportError as e:
+    print e
