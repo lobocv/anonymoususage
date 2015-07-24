@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
 
+
 def create_table(dbcon, name, columns):
     """
     Create a table in the database.
@@ -22,6 +23,11 @@ def create_table(dbcon, name, columns):
 
 
 def get_table_list(dbconn):
+    """
+    Get a list of tables that exist in dbconn
+    :param dbconn: database connection
+    :return: List of table names
+    """
     cur = dbconn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     return [item[0] for item in cur.fetchall()]
@@ -30,7 +36,6 @@ def get_table_list(dbconn):
 def get_table_columns(dbconn, tablename):
     """
     Return a list of tuples specifying the column name and type
-    :return:
     """
     cur = dbconn.cursor()
     cur.execute("PRAGMA table_info(%s);" % tablename)
@@ -40,6 +45,12 @@ def get_table_columns(dbconn, tablename):
 
 
 def check_table_exists(dbcon, tablename):
+    """
+    Check if a table exists in the database.
+    :param dbcon: database connection
+    :param tablename: table name
+    :return: Boolean
+    """
     dbcur = dbcon.cursor()
     dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
     result = dbcur.fetchone()
@@ -61,6 +72,12 @@ def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
 
 
 def get_rows(dbconn, tablename):
+    """
+    Return all the rows in a table from dbconn
+    :param dbconn: database connection
+    :param tablename: name of the table
+    :return: List of sqlite3.Row objects
+    """
     cursor = dbconn.cursor()
     cursor.execute("SELECT * FROM %s" % tablename)
     rows = cursor.fetchall()
@@ -68,7 +85,11 @@ def get_rows(dbconn, tablename):
 
 
 def merge_databases(master, part):
-    master.row_factory = part.row_factory = None
+    """
+    Merge the partial database into the master database.
+    :param master: database connection to the master database
+    :param part: database connection to the partial database
+    """
     mcur = master.cursor()
     pcur = part.cursor()
 
@@ -85,9 +106,8 @@ def merge_databases(master, part):
 
             args = ("?," * len(cols))[:-1]
             query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
-            mcur.executemany(query, rows)
+            mcur.executemany(query, tuple(tuple(r) for r in rows))
             logger.debug("Merging {m} rows of table {name} into master".format(name=table, m=len(rows)))
 
-    master.row_factory = part.row_factory = sqlite3.Row
     master.commit()
 
