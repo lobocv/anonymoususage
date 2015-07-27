@@ -161,6 +161,7 @@ class AnonymousUsageTracker(object):
                 # Remove the partial file and create a new one
                 os.remove(self.tracker_file_part)
                 self.dbcon = self.dbcon_part = sqlite3.connect(self.tracker_file_part, check_same_thread=False)
+                self.dbcon_part.row_factory = sqlite3.Row
                 for table in self._tables.itervalues():
                     create_table(self.dbcon_part, table.name, table.table_args)
 
