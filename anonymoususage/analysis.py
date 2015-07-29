@@ -7,6 +7,7 @@ import re
 import ConfigParser
 import os
 import logging
+import matplotlib
 from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
@@ -103,9 +104,49 @@ class DataManager(object):
         shutil.rmtree(tmpdir)
         ftp.close()
 
+def plot_stat(dbconn, table_name, bin_size='day', date_limits=(None, None)):
 
+    import datetime
+    import matplotlib.pyplot as plt
+    from matplotlib.dates import DayLocator, MinuteLocator, DateFormatter, drange, date2num, num2date
+    from numpy import arange
+
+    rows = get_rows(dbconn, table_name)
+    times = []
+    counts = []
+    for r in rows:
+        dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
+        if bin_size == 'day':
+            dt.replace(minute=0, second=0, microsecond=0)
+        times.append(dt)
+        # times.append(date2num(dt))
+        counts.append(r['Count'])
+
+    plt.hist(date2num(times), cumulative=True)
+    plt.show()
+
+    # fig, ax = plt.subplots()
+    # ax.set_title(table_name)
+    # ax.plot_date(times, counts)
+    #
+    # if date_limits:
+    #     ax.set_xlim(*date_limits)
+    #
+    # # The hour locator takes the hour or sequence of hours you want to
+    # # tick, not the base multiple
+    #
+    # ax.xaxis.set_major_locator(DayLocator())
+    # ax.xaxis.set_minor_locator(MinuteLocator(arange(0, 125, 5)))
+    # ax.xaxis.set_major_formatter(DateFormatter("%d/%m/%Y %H:%M:%S"))
+    #
+    # ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
+    # fig.autofmt_xdate()
+    #
+    # plt.show()
+    asd=3
 
 if __name__ == '__main__':
+
     dm = DataManager('/home/calvin/smc/pygame/LMX/server.cfg')
 
     dm.consolidate()
