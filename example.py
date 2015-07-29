@@ -3,9 +3,12 @@ __author__ = 'calvin'
 from anonymoususage import AnonymousUsageTracker
 from anonymoususage.tools import *
 from anonymoususage.analysis import *
+from anonymoususage.database import DataBase
+import sqlite3
 import datetime
 import logging
 import time
+import os
 
 logger = logging.basicConfig(level=logging.DEBUG)
 interval = datetime.timedelta(seconds=1)
@@ -16,8 +19,11 @@ tracker = AnonymousUsageTracker(uuid='abc',
                                 check_interval=datetime.timedelta(seconds=5),
                                 submit_interval=interval)
 
+if not os.path.exists('./TestUUID.db'):
+    dm = DataManager(config='./anonymoususage.cfg')
+    dm.download_database('TestUUID', './TestUUID.db')
 
-db = tracker.dbcon_master
-rc = get_table_list(db)
+db = sqlite3.connect('./TestUUID.db', factory=DataBase)
+db.row_factory = sqlite3.Row
 
-plot_stat(tracker.dbcon_master, 'Grids')
+plot_stat(db, 'Grids')

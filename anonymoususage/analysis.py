@@ -104,6 +104,15 @@ class DataManager(object):
         shutil.rmtree(tmpdir)
         ftp.close()
 
+    def download_database(self, uuid, local_path):
+        ftpinfo = self._ftp
+        ftp = ftplib.FTP()
+        ftp.connect(host=ftpinfo['host'], port=ftpinfo['port'], timeout=ftpinfo['timeout'])
+        ftp.login(user=ftpinfo['user'], passwd=ftpinfo['passwd'], acct=ftpinfo['acct'])
+        ftp.cwd(ftpinfo['path'])
+        ftp_download(ftp, uuid + '.db', local_path)
+
+
 def plot_stat(dbconn, table_name, bin_size='day', date_limits=(None, None)):
 
     import datetime

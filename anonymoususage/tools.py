@@ -3,6 +3,7 @@ __author__ = 'calvin'
 import ftplib
 import sqlite3
 import logging
+import os
 
 logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
@@ -111,3 +112,14 @@ def merge_databases(master, part):
 
     master.commit()
 
+
+def ftp_download(ftp, ftp_path, local_path):
+    """
+    Download the master database
+    :param ftp: ftp connection
+    :param ftp_path: path to file on the ftp server
+    :param local_path: local path to download file
+    :return:
+    """
+    with open(local_path, 'wb') as _f:
+        ftp.retrbinary('RETR %s' % ftp_path, _f.write)
