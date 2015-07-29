@@ -13,7 +13,7 @@ import ConfigParser
 from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
-from .exceptions import IntervalError
+from .exceptions import *
 from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
@@ -109,12 +109,16 @@ class AnonymousUsageTracker(object):
         """
         Create a Statistic object in the Tracker.
         """
+        if ' ' in name:
+            raise TableNameError(name)
         self._tables[name] = Statistic(name, self)
 
     def track_state(self, name, initial_state):
         """
         Create a State object in the Tracker.
         """
+        if ' ' in name:
+            raise TableNameError(name)
         self._tables[name] = State(name, self, initial_state=initial_state)
 
     def get_row_count(self):
