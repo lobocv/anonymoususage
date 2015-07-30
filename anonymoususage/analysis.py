@@ -7,15 +7,17 @@ import re
 import ConfigParser
 import os
 import logging
-import matplotlib
+import datetime
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+
 from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
+
 from tools import *
-
-
 
 
 class DataManager(object):
@@ -113,46 +115,35 @@ class DataManager(object):
         ftp_download(ftp, uuid + '.db', local_path)
 
 
-def plot_stat(dbconn, table_name, bin_size='day', date_limits=(None, None)):
+def plot_stat(dbconn, table_names, date_limits=(None, None)):
 
-    import datetime
-    import matplotlib.pyplot as plt
-    from matplotlib.dates import DayLocator, MinuteLocator, DateFormatter, drange, date2num, num2date
-    from numpy import arange
+    fig, ax = plt.subplots()
 
-    rows = get_rows(dbconn, table_name)
-    times = []
-    counts = []
-    for r in rows:
-        dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
-        if bin_size == 'day':
-            dt.replace(minute=0, second=0, microsecond=0)
-        times.append(dt)
-        # times.append(date2num(dt))
-        counts.append(r['Count'])
+    ax.xaxis.set_major_formatter(DateFormatter("%d %B %Y"))
+    ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Count')
 
-    plt.hist(date2num(times), cumulative=True)
+    for table_name in table_names:
+        rows = get_rows(dbconn, table_name)
+        data = []
+        for r in rows:
+            dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
+            data.append((dt, r['Count']))
+
+        data.sort()
+        times, counts = zip(*data)
+        ax.plot_date(times, counts, '-', label=table_name)
+
+    ax.legend(table_names, loc='center left', bbox_to_anchor=(0, 1),
+              fancybox=True, ncol=3 * (len(table_names) / 3))
+
+    if date_limits:
+        ax.set_xlim(*date_limits)
+    else:
+        fig.autofmt_xdate()
+    fig.set_size_inches(12, 8, forward=True)
     plt.show()
-
-    # fig, ax = plt.subplots()
-    # ax.set_title(table_name)
-    # ax.plot_date(times, counts)
-    #
-    # if date_limits:
-    #     ax.set_xlim(*date_limits)
-    #
-    # # The hour locator takes the hour or sequence of hours you want to
-    # # tick, not the base multiple
-    #
-    # ax.xaxis.set_major_locator(DayLocator())
-    # ax.xaxis.set_minor_locator(MinuteLocator(arange(0, 125, 5)))
-    # ax.xaxis.set_major_formatter(DateFormatter("%d/%m/%Y %H:%M:%S"))
-    #
-    # ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
-    # fig.autofmt_xdate()
-    #
-    # plt.show()
-    asd=3
 
 if __name__ == '__main__':
 
