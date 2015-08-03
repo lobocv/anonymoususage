@@ -132,13 +132,14 @@ def plot_stat(dbconn, table_names, date_limits=(None, None)):
             data.append((dt, r['Count']))
 
         data.sort()
-        times, counts = zip(*data)
-        ax.plot_date(times, counts, '-', label=table_name)
+        if len(data) > 2:
+            times, counts = zip(*data)
+            ax.plot_date(times, counts, '-', label=table_name)
 
     ax.legend(table_names, loc='center left', bbox_to_anchor=(0, 1),
-              fancybox=True, ncol=3 * (len(table_names) / 3))
+              fancybox=True, ncol=3 * (len(table_names) / 3) + 1)
 
-    if date_limits:
+    if date_limits[0] and date_limits[1]:
         ax.set_xlim(*date_limits)
     else:
         fig.autofmt_xdate()
