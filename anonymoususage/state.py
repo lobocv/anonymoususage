@@ -24,16 +24,17 @@ class State(Table):
     def __init__(self, *args, **kwargs):
         super(State, self).__init__(*args, **kwargs)
         self.state = kwargs.get('initial_state', None)
-        if self.count == 0:
+        if self.count:
+            self.last_value = self.get_last(1)[0]['State']
+        else:
+            self.last_value = None
             self.insert(self.state)
 
     def insert(self, value):
-        try:
-            last_value = self.get_last(1)[0]['State']
-        except IndexError:
+        if self.last_value is None:
             is_redundant = False
         else:
-            is_redundant = value == last_value
+            is_redundant = value == self.last_value
 
         if is_redundant:
             # Don't add redundant information
@@ -46,7 +47,7 @@ class State(Table):
                                                                                                       str(value),
                                                                                                       dt)))
             self.tracker.dbcon.commit()
-
+            self.last_value = value
         except sqlite3.Error as e:
             logger.error(e)
         else:
@@ -54,3 +55,6 @@ class State(Table):
             self.count += 1
             logger.debug("{name} state set to {value}".format(name=self.name, value=value))
         return self
+
+    def __repr__(self):
+        return "State ({s.name}): {s.last_value}".format(s=self)

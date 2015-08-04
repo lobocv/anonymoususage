@@ -44,3 +44,6 @@ class Statistic(Table):
             self.count = count
             logging.debug('{s.name} count set to {s.count}'.format(s=self))
         return self
+
+    def __repr__(self):
+        return "Statistic ({s.name}): {s.count}".format(s=self)
