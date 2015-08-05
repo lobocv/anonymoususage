@@ -47,3 +47,17 @@ class Statistic(Table):
 
     def __repr__(self):
         return "Statistic ({s.name}): {s.count}".format(s=self)
+
+    def get_average(self, default=None):
+        """
+        Return the statistic's count divided by the number of rows in the table. If it cannot be calculated return
+        `default`.
+        :return: The average count value (count / table rows) or `default` if it cannot be calculated.
+        """
+        try:
+            average = self.count / self.get_number_of_rows()
+        except Exception as e:
+            logging.error(e)
+            return default
+        else:
+            return average

@@ -23,4 +23,5 @@ class TableNameError(AnonymousUsageError):
         self.name = name
 
     def __str__(self):
-        return 'Table name "{}" cannot contain spaces. Consider "{}" instead.'.format(self.name, self.name.replace(' ', '_'))
+        return 'Table name "{}" cannot contain spaces. Consider "{}" instead.'.format(self.name,
+                                                                                      self.name.replace(' ', '_'))
