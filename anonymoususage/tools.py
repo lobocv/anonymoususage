@@ -54,10 +54,13 @@ def get_number_of_rows(dbcon, tablename):
     :return: Boolean
     """
     dbcur = dbcon.cursor()
-    dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
-    result = dbcur.fetchone()
-    dbcur.close()
-    return result[0]
+    if check_table_exists(dbcon, tablename):
+        dbcur.execute("SELECT COUNT(*) FROM {}".format(tablename))
+        result = dbcur.fetchone()
+        dbcur.close()
+        return result[0]
+    else:
+        return 0
 
 
 def check_table_exists(dbcon, tablename):
@@ -67,8 +70,14 @@ def check_table_exists(dbcon, tablename):
     :param tablename: table name
     :return: Boolean
     """
-    n_rows = get_number_of_rows(dbcon, tablename)
-    return n_rows > 0
+    dbcur = dbcon.cursor()
+    dbcur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s';" % tablename)
+    result = dbcur.fetchone()
+    dbcur.close()
+    if result is None:
+        return False
+    else:
+        return result[0] == tablename
 
 
 def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):

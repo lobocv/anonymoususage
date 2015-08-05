@@ -31,10 +31,14 @@ class Timer(Statistic):
         logger.debug('AnonymousUsage: Pausing %s timer' % self.name)
 
     def stop_timer(self):
+        if self._start_time is None:
+            logger.debug('AnonymousUsage: Cannot stop timer that has not been started.')
+            return
         timedelta = datetime.datetime.now() - self._start_time
         self._delta_seconds += timedelta.total_seconds()
         self += self._delta_seconds
         self._delta_seconds = 0
+        self._start_time = None
         logger.debug('AnonymousUsage: Stopping %s timer' % self.name)
 
     def __sub__(self, other):
@@ -42,8 +46,10 @@ class Timer(Statistic):
 
     def __repr__(self):
         last_two = self.get_last(2)
-        if len(last_two) < 2:
+        if len(last_two) == 1:
             last_time = last_two[0]['Count']
+        elif len(last_two) == 0:
+            return "Timer ({s.name}): Total 0 s".format(s=self)
         else:
             last_time = abs(last_two[1]['Count'] - last_two[0]['Count'])
         average = self.get_average('None')
