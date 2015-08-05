@@ -113,13 +113,13 @@ class AnonymousUsageTracker(object):
             raise TableNameError(name)
         self._tables[name] = Statistic(name, self)
 
-    def track_state(self, name, initial_state):
+    def track_state(self, name, initial_state, **state_kw):
         """
         Create a State object in the Tracker.
         """
         if ' ' in name:
             raise TableNameError(name)
-        self._tables[name] = State(name, self, initial_state=initial_state)
+        self._tables[name] = State(name, self, initial_state, **state_kw)
 
     def get_row_count(self):
         info = {}

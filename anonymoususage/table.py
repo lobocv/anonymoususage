@@ -11,7 +11,7 @@ class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
     table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
 
-    def __init__(self, name, tracker, *args, **kwargs):
+    def __init__(self, name, tracker):
         self.tracker = tracker
         self.name = name
 
