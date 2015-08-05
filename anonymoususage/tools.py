@@ -1,3 +1,5 @@
+from reportlab.graphics.widgets import table
+
 __author__ = 'calvin'
 
 import ftplib
@@ -44,9 +46,9 @@ def get_table_columns(dbconn, tablename):
     return cols
 
 
-def check_table_exists(dbcon, tablename):
+def get_number_of_rows(dbcon, tablename):
     """
-    Check if a table exists in the database.
+    Return the number of rows in a table
     :param dbcon: database connection
     :param tablename: table name
     :return: Boolean
@@ -55,7 +57,18 @@ def check_table_exists(dbcon, tablename):
     dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
     result = dbcur.fetchone()
     dbcur.close()
-    return result[0] == 1
+    return result[0]
+
+
+def check_table_exists(dbcon, tablename):
+    """
+    Check if a table exists in the database.
+    :param dbcon: database connection
+    :param tablename: table name
+    :return: Boolean
+    """
+    n_rows = get_number_of_rows(dbcon, tablename)
+    return n_rows > 0
 
 
 def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
