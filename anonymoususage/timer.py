@@ -2,6 +2,7 @@ __author__ = 'calvin'
 
 import datetime
 import logging
+import time
 
 logger = logging.getLogger('AnonymousUsage')
 
@@ -40,6 +41,51 @@ class Timer(Statistic):
         self._delta_seconds = 0
         self._start_time = None
         logger.debug('AnonymousUsage: Stopping %s timer' % self.name)
+
+    @property
+    def total_minutes(self):
+        return self.count / 60.
+
+    @property
+    def total_hours(self):
+        return self.count / 3600.
+
+    @property
+    def total_seconds(self):
+        return self.count
+
+    @property
+    def total_days(self):
+        return self.count / 86400.
+
+    def strftime(self, format, average=False):
+        seconds = self.get_average(0) if average else self.count
+        return time.strftime(format, time.gmtime(seconds))
+
+    def formatted_total_time(self, **kwargs):
+        return self.format_time(self.count, **kwargs)
+
+    def formatted_average_time(self, **kwargs):
+        return self.format_time(self.get_average(default=0), **kwargs)
+
+    @staticmethod
+    def format_time(n_seconds, seconds=True, minutes=True, hours=True, days=True, years=True):
+        y = d = h = m = 0
+        if years:
+            y, n_seconds = divmod(n_seconds, 31536000)
+        if days:
+            d, n_seconds = divmod(n_seconds, 86400)
+        if hours:
+            h, n_seconds = divmod(n_seconds, 3600)
+        if minutes:
+            m, n_seconds = divmod(n_seconds, 60)
+
+        fmt = ' '.join([bool(y) * years * ('%d years' % y),
+                        bool(d) * days * ('%d days' % d),
+                        bool(h) * hours * ('%d hours' % h),
+                        bool(m) * minutes * ('%d minutes' % m),
+                        bool(n_seconds) * seconds * ('%d seconds' % n_seconds)]).strip()
+        return fmt
 
     def __sub__(self, other):
         raise NotImplementedError('Cannot subtract from timer.')
