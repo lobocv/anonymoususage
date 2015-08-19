@@ -1,5 +1,3 @@
-from reportlab.graphics.widgets import table
-
 __author__ = 'calvin'
 
 import ftplib
