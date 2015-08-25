@@ -60,7 +60,7 @@ anonymoususage.cfg
 ```
     [FTP]
     host = ftp.my_rpg.com
-    user = LMX
+    user = my_rpg
     passwd = th394h2GDF
     path = ./usage
 
