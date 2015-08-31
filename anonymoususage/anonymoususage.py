@@ -221,7 +221,7 @@ class AnonymousUsageTracker(object):
         for table in tables:
             if table == '__submissions__':
                 continue
-            nrows += len(get_rows(self.dbcon_part, table))
+            nrows += get_number_of_rows(self.dbcon_part, table)
         if nrows:
             logger.debug('%d new statistics were added since the last submission.' % nrows)
         else:
