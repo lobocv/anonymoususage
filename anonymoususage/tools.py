@@ -5,7 +5,6 @@ import sqlite3
 import logging
 
 logger = logging.getLogger('AnonymousUsage')
-logger.setLevel(logging.DEBUG)
 
 
 def create_table(dbcon, name, columns):

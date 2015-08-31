@@ -11,10 +11,8 @@ from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('AnonymousUsage')
-logger.setLevel(logging.DEBUG)
+
 from tools import *
-
-
 
 
 class DataManager(object):
