@@ -150,7 +150,7 @@ class AnonymousUsageTracker(object):
                     n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
                 else:
                     n = 1
-                new_filename = self.uuid + '_%03d.db' % n
+                new_filename = self.uuid + '_%Part03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 self['__submissions__'] += 1
                 logger.debug('Submission to %s successful.' % self._ftp['host'])

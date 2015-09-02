@@ -76,7 +76,7 @@ def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
     return ftp
 
 
-def get_rows(dbconn, tablename):
+def get_rows(dbconn, tablename, uuid=None):
     """
     Return all the rows in a table from dbconn
     :param dbconn: database connection
@@ -84,7 +84,10 @@ def get_rows(dbconn, tablename):
     :return: List of sqlite3.Row objects
     """
     cursor = dbconn.cursor()
-    cursor.execute("SELECT * FROM %s" % tablename)
+    if uuid:
+        cursor.execute("SELECT * FROM  {tablename} WHERE UUID='{uuid}'".format(tablename=tablename, uuid=uuid))
+    else:
+        cursor.execute("SELECT * FROM %s" % tablename)
     rows = cursor.fetchall()
     return rows
 
@@ -129,8 +132,8 @@ def ftp_download(ftp, ftp_path, local_path):
         ftp.retrbinary('RETR %s' % ftp_path, _f.write)
 
 
-def get_datetime_sorted_rows(dbconn, table_name, column=None):
-    rows = get_rows(dbconn, table_name)
+def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
+    rows = get_rows(dbconn, table_name, uuid=uuid)
     data = []
     for r in rows:
         dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")

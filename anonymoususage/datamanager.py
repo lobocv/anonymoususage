@@ -48,7 +48,7 @@ class DataManager(object):
         ftp = self.login_ftp()
         files = ftp.nlst()
 
-        uuid_regex = re.compile(r'(.*?)_\d*.db')
+        uuid_regex = re.compile(r'(.*?)_Part\d*.db')
         uuids = defaultdict(list)
         for f in files:
             uuid = uuid_regex.findall(f)
@@ -116,11 +116,11 @@ class DataManager(object):
         ftp = self.login_ftp()
         files = ftp.nlst()
 
-        uuid_regex = re.compile(r'(.*?).db')
+        uuid_regex = re.compile(r'(.*?)\.db')
         uuids = []
         for f in files:
             uuid = uuid_regex.findall(f)
-            if uuid:
+            if uuid and 'Part' not in uuid[0]:
                 uuids.append(uuid[0])
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
