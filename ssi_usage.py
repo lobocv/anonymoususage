@@ -19,12 +19,14 @@ interval = datetime.timedelta(seconds=1)
 #                                 check_interval=datetime.timedelta(seconds=5),
 #                                 submit_interval=interval)
 
-if not os.path.exists('./TestUUID.db'):
-    dm = DataManager(config='./anonymoususage.cfg')
-    dm.consolidate()
-    dm.download_database('TestUUID', './TestUUID.db')
+dbname = "0076-7877-0001.db"
+if not os.path.exists('./%s' % dbname):
+    dm = DataManager(config='/home/calvin/smc/pygame/LMX/lmx/anonymoususage.cfg')
+    # dm.consolidate()
+    dm.download_database(dbname[:-3], './%s' % dbname)
 
-db = sqlite3.connect('./TestUUID.db', factory=DataBase)
+db = sqlite3.connect('./%s' % dbname, factory=DataBase)
 db.row_factory = sqlite3.Row
 
-plot_stat(db, ('grids', 'units', '__submissions__'))
+plot_stat(db, ('total_line_length_m', 'power_cycles', 'screenshots'))
+sdf=3
