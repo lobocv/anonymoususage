@@ -3,10 +3,14 @@ __author__ = 'calvin'
 import ftplib
 import sqlite3
 import logging
-import os
+import datetime
+
 
 logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
+
+__all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
+           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows']
 
 
 def create_table(dbcon, name, columns):
@@ -123,3 +127,17 @@ def ftp_download(ftp, ftp_path, local_path):
     """
     with open(local_path, 'wb') as _f:
         ftp.retrbinary('RETR %s' % ftp_path, _f.write)
+
+
+def get_datetime_sorted_rows(dbconn, table_name, column=None):
+    rows = get_rows(dbconn, table_name)
+    data = []
+    for r in rows:
+        dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
+        if column is None:
+            data.append((dt, r))
+        else:
+            data.append((dt, r[column]))
+    data.sort()
+
+    return data
