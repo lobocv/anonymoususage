@@ -115,6 +115,15 @@ class DataManager(object):
         ftp_download(ftp, uuid + '.db', local_path)
 
 
+def get_sorted_rows(dbconn, table_name):
+    rows = get_rows(dbconn, table_name)
+    data = []
+    for r in rows:
+        dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
+        data.append((dt, r['Count']))
+        data.sort()
+    return data
+
 def plot_stat(dbconn, table_names, date_limits=(None, None)):
 
     fig, ax = plt.subplots()
@@ -125,14 +134,8 @@ def plot_stat(dbconn, table_names, date_limits=(None, None)):
     ax.set_ylabel('Count')
     plotted_tables = set()
     for table_name in table_names:
-        rows = get_rows(dbconn, table_name)
-        data = []
-        for r in rows:
-            dt = datetime.datetime.strptime(r['Time'], "%d/%m/%Y %H:%M:%S")
-            data.append((dt, r['Count']))
-
+        data = get_sorted_rows(dbconn, table_name)
         if data:
-            data.sort()
             times, counts = zip(*data)
             ax.plot_date(times, counts, '-', label=table_name)
             plotted_tables.add(table_name)
@@ -147,6 +150,7 @@ def plot_stat(dbconn, table_names, date_limits=(None, None)):
         fig.autofmt_xdate()
     fig.set_size_inches(12, 8, forward=True)
     plt.show()
+
 
 if __name__ == '__main__':
 
