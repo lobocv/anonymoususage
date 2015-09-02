@@ -26,9 +26,9 @@ if not os.path.exists('./%s' % dbname):
     # dm.consolidate()
     dm.download_database(dbname[:-3], './%s' % dbname)
 
-if not os.path.exists('./TestUUID.db'):
+if os.path.exists('./TestUUID.db'):
     dm = DataManager(config='./anonymoususage.cfg')
-    dm.consolidate()
+    dm.consolidate_into_master()
     dm.download_database('--', './TestUUID.db')
 
 db = sqlite3.connect('./%s' % dbname, factory=DataBase)
