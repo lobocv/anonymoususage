@@ -16,8 +16,9 @@ interval = datetime.timedelta(seconds=1)
 dm = DataManager(config='anonymoususage.cfg')
 # dm.consolidate_individuals(delete_parts=True)
 # dm.consolidate_into_master()
-if not os.path.exists('./master.db'):
-    dm.download_master('./master.db')
+if os.path.exists('./master.db'):
+    os.remove('./master.db')
+dm.download_master('./master.db')
 
 db = sqlite3.connect('./master.db', factory=DataBase)
 db.row_factory = sqlite3.Row
