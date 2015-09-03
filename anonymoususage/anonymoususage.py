@@ -14,22 +14,16 @@ from .table import Table, check_table_exists
 from .state import State
 from .statistic import Statistic
 from .exceptions import IntervalError
+from .timer import Timer
 from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
 logger = logging.getLogger('AnonymousUsage')
-logger.setLevel(logging.DEBUG)
-# ch = logging.StreamHandler(sys.stdout)
-# ch.setLevel(logging.DEBUG)
-# formatter = logging.Formatter(fmt='[%(levelname)-8s] %(asctime)s - %(message)s',
-#                               datefmt='[%m/%d/%Y] [%I:%M:%S %p]')
-# ch.setFormatter(formatter)
-# logger.addHandler(ch)
 
 
 class AnonymousUsageTracker(object):
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
-                 config=''):
+                 config='', debug=False):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
@@ -40,12 +34,15 @@ class AnonymousUsageTracker(object):
         :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
         """
 
+        if debug:
+            logger.setLevel(logging.DEBUG)
+
         if not isinstance(submit_interval, datetime.timedelta):
             raise IntervalError(submit_interval)
         if not isinstance(check_interval, datetime.timedelta):
             raise IntervalError(check_interval)
 
-        self.uuid = uuid
+        self.uuid = str(uuid)
         self.filename = os.path.splitext(tracker_file)[0]
         self.tracker_file = self.filename + '.db'
         self.submit_interval = submit_interval
@@ -111,11 +108,14 @@ class AnonymousUsageTracker(object):
         """
         self._tables[name] = Statistic(name, self)
 
-    def track_state(self, name, initial_state):
+    def track_state(self, name, initial_state, **state_kw):
         """
         Create a State object in the Tracker.
         """
-        self._tables[name] = State(name, self, initial_state=initial_state)
+        self._tables[name] = State(name, self, initial_state, **state_kw)
+
+    def track_time(self, name):
+        self._tables[name] = Timer(name, self)
 
     def get_row_count(self):
         info = {}
@@ -151,7 +151,7 @@ class AnonymousUsageTracker(object):
                     n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
                 else:
                     n = 1
-                new_filename = self.uuid + '_%Part03d.db' % n
+                new_filename = self.uuid + '_Part%03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
                 logger.debug('Submission to %s successful.' % self._ftp['host'])
 
@@ -221,7 +221,7 @@ class AnonymousUsageTracker(object):
         for table in tables:
             if table == '__submissions__':
                 continue
-            nrows += len(get_rows(self.dbcon_part, table))
+            nrows += get_number_of_rows(self.dbcon_part, table)
         if nrows:
             logger.debug('%d new statistics were added since the last submission.' % nrows)
         else:

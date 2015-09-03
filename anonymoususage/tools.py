@@ -7,7 +7,6 @@ import datetime
 
 
 logger = logging.getLogger('AnonymousUsage')
-logger.setLevel(logging.DEBUG)
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
@@ -107,10 +106,13 @@ def check_table_exists(dbcon, tablename):
     :return: Boolean
     """
     dbcur = dbcon.cursor()
-    dbcur.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '{}'".format(tablename))
+    dbcur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s';" % tablename)
     result = dbcur.fetchone()
     dbcur.close()
-    return result[0] == 1
+    if result is None:
+        return False
+    else:
+        return result[0] == tablename
 
 
 def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
