@@ -57,16 +57,6 @@ class DataManager(object):
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
 
-        master_exists = "master.db" in files
-        if master_exists:
-            master_path = os.path.join(tmpdir, 'master.db')
-            self.download_database("master", master_path)
-            db_master = sqlite3.connect(master_path)
-            logging.debug("Master database found on FTP server.")
-        else:
-            logging.debug("No master database found on FTP server.")
-            db_master = None
-
         for uuid, partial_dbs in uuids.iteritems():
             # partial_regex = re.compile(r'%s_\d+.db' % uuid)
             # partial_dbs = partial_regex.findall(all_files)
@@ -117,13 +107,18 @@ class DataManager(object):
         files = ftp.nlst()
 
         uuid_regex = re.compile(r'(.*?)\.db')
-        uuids = []
+        uuids = set()
         for f in files:
             uuid = uuid_regex.findall(f)
             if uuid and 'Part' not in uuid[0]:
-                uuids.append(uuid[0])
+                uuids.add(uuid[0])
+        if 'master' in uuids:
+            uuids.remove('master')
 
         tmpdir = tempfile.mkdtemp('anonymoususage')
+        """
+        TO DO: Merge only new data into the master.
+
         # Download the master data base if it exists on the FTP server
         master_exists = "master.db" in files
         if master_exists:
@@ -134,7 +129,8 @@ class DataManager(object):
         else:
             logging.debug("No master database found on FTP server.")
             db_master = None
-
+        """
+        db_master = None
         for uuid in uuids:
             # Download the submaster database
             submaster_filename = '%s.db' % uuid
@@ -147,15 +143,17 @@ class DataManager(object):
             if db_master is None:
                 logging.debug("Using %s as master database." % submaster_filename)
                 db_master = db_submaster
+                master_path = local_submaster_path
             else:
                 logging.debug("Merging %s into the master database." % submaster_filename)
                 merge_databases(db_master, db_submaster)
                 db_submaster.close()
-
         # Upload the merged local submaster back to the FTP
         logging.debug('Uploading master database for UUID %s' % uuid)
-        with open(local_submaster_path, 'rb') as _f:
+        with open(master_path, 'rb') as _f:
             ftp.storbinary('STOR master.db', _f)
+        shutil.rmtree(tmpdir)
+        ftp.close()
 
     def download_database(self, uuid, local_path):
         ftp = self.login_ftp()

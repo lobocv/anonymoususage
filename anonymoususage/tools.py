@@ -10,7 +10,7 @@ logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
-           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row']
+           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list']
 
 
 def create_table(dbcon, name, columns):
@@ -48,6 +48,23 @@ def get_table_list(dbconn):
     cur = dbconn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     return [item[0] for item in cur.fetchall()]
+
+
+def get_uuid_list(dbconn):
+    """
+    Get a list of tables that exist in dbconn
+    :param dbconn: master database connection
+    :return: List of uuids in the database
+    """
+    cur = dbconn.cursor()
+    tables = get_table_list(dbconn)
+    uuids = set()
+    for table in tables:
+        cur.execute("SELECT (UUID) FROM {table}".format(table=table))
+        uuid = set([i[0] for i in cur.fetchall()])
+        if uuid:
+            uuids.update(uuid)
+    return uuids
 
 
 def get_table_columns(dbconn, tablename):

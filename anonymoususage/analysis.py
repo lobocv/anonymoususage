@@ -11,17 +11,18 @@ from tools import *
 def plot_stat(dbconn, table_names, uuid=None, date_limits=(None, None)):
 
     fig, ax = plt.subplots()
+    if uuid:
+        plt.title(uuid)
     ax.xaxis.set_major_formatter(DateFormatter("%d %B %Y"))
     ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
     ax.set_xlabel('Date')
     ax.set_ylabel('Count')
-
     plotted_tables = set()
     for table_name in table_names:
         data = get_datetime_sorted_rows(dbconn, table_name, uuid=uuid, column='Count')
         if data:
             times, counts = zip(*data)
-            ax.plot_date(times, counts, '-', label=table_name)
+            ax.plot_date(times, counts, '-o', label=table_name)
             plotted_tables.add(table_name)
         else:
             logging.warning('No data for %s. Omitting from plot.' % table_name)
