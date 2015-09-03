@@ -139,6 +139,7 @@ class AnonymousUsageTracker(object):
         Upload the database to the FTP server. Only submit new information contained in the partial database.
         Merge the partial database back into master after a successful upload.
         """
+        self['__submissions__'] += 1
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
@@ -152,7 +153,6 @@ class AnonymousUsageTracker(object):
                     n = 1
                 new_filename = self.uuid + '_%Part03d.db' % n
                 ftp.storbinary('STOR %s' % new_filename, _f)
-                self['__submissions__'] += 1
                 logger.debug('Submission to %s successful.' % self._ftp['host'])
 
                 # Merge the local partial database into master
@@ -164,9 +164,9 @@ class AnonymousUsageTracker(object):
                 self.dbcon_part.row_factory = sqlite3.Row
                 for table in self._tables.itervalues():
                     create_table(self.dbcon_part, table.name, table.table_args)
-
                 return True
         except Exception as e:
+            self['__submissions__'].delete_last()
             logger.error(e)
             self.stop_watcher()
             return False

@@ -64,6 +64,13 @@ class Table(object):
 
         return rows[-n:]
 
+    def delete_last(self):
+        last = self.get_last()
+        if last:
+            last = last[0]
+            delete_row(self.tracker.dbcon_part, self.name, "Count", last['Count'])
+            self.count -= 1
+
     def get_count(self):
         row = self.get_last()
         if row:

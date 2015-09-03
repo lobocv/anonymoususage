@@ -10,7 +10,7 @@ logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
-           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows']
+           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row']
 
 
 def create_table(dbcon, name, columns):
@@ -25,6 +25,18 @@ def create_table(dbcon, name, columns):
         return True
     except sqlite3.OperationalError as e:
         return False
+
+
+def delete_row(dbconn, table_name, field, value):
+    """
+    Delete a row from a table in a database.
+    :param dbconn: data base connection
+    :param table_name: name of the table
+    :param field: field of the table to target
+    :param value: value of the field in the table to delete
+    """
+    cur = dbconn.cursor()
+    cur.execute("DELETE FROM {name} WHERE {field}={value}".format(name=table_name, field=field, value=value))
 
 
 def get_table_list(dbconn):
