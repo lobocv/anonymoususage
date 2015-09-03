@@ -10,7 +10,8 @@ logger = logging.getLogger('AnonymousUsage')
 logger.setLevel(logging.DEBUG)
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
-           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list']
+           'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
+           'get_number_of_rows']
 
 
 def create_table(dbcon, name, columns):
@@ -76,6 +77,26 @@ def get_table_columns(dbconn, tablename):
     info = cur.fetchall()
     cols = [(i[1], i[2]) for i in info]
     return cols
+
+
+def get_number_of_rows(dbcon, tablename, uuid=None):
+    """
+    Return the number of rows in a table
+    :param dbcon: database connection
+    :param tablename: table name
+    :return: Boolean
+    """
+    dbcur = dbcon.cursor()
+    if check_table_exists(dbcon, tablename):
+        if uuid:
+            dbcur.execute("SELECT COUNT(*) FROM {name} WHERE UUID='{uuid}'".format(name=tablename, uuid=uuid))
+        else:
+            dbcur.execute("SELECT COUNT(*) FROM {name}".format(name=tablename))
+        result = dbcur.fetchone()
+        dbcur.close()
+        return result[0]
+    else:
+        return 0
 
 
 def check_table_exists(dbcon, tablename):

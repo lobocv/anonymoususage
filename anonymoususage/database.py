@@ -10,5 +10,8 @@ class DataBase(sqlite3.Connection):
     def __init__(self, *args, **kwargs):
         super(DataBase, self).__init__(*args, **kwargs)
         self.row_factory = sqlite3.Row
-        self.tables = get_table_list(self)
-        sd=3
+        table_names = get_table_list(self)
+        uuid_list = get_uuid_list(self)
+        self.uuids = {}
+        for uuid in uuid_list:
+            self.uuids[uuid] = {table: get_number_of_rows(self, table, uuid=uuid) for table in table_names}
