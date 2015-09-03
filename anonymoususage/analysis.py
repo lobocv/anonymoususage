@@ -47,7 +47,7 @@ def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), dat
             logging.warning('No data for found. Failed to create plot.')
             return
 
-    plt.figlegend(handles, plotted_tables, loc='upper left', ncol=max(1, 3 * (len(plotted_tables) / 3)), labelspacing=0.)
+    # plt.figlegend(handles, plotted_tables, loc='upper left', ncol=max(1, 3 * (len(plotted_tables) / 3)), labelspacing=0.)
     plt.figlegend(handles, uuids, loc='lower left', labelspacing=0.)
 
     if date_limits[0] and date_limits[1]:
