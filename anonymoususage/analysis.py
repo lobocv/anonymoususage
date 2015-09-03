@@ -46,7 +46,8 @@ def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), dat
             return
 
     handles, labels = plots[0].get_legend_handles_labels()
-    plt.figlegend(handles, plotted_tables, loc=' left', ncol=max(1, 3 * (len(plotted_tables) / 3)), labelspacing=0.)
+    plt.figlegend(handles, plotted_tables, loc='upper left', ncol=max(1, 3 * (len(plotted_tables) / 3)), labelspacing=0.)
+    plt.figlegend(handles, uuids, loc='lower left', ncol=max(1, 3 * (len(plotted_tables) / 3)), labelspacing=0.)
 
     if date_limits[0] and date_limits[1]:
         plots.set_xlim(*date_limits)
