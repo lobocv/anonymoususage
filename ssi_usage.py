@@ -14,8 +14,8 @@ interval = datetime.timedelta(seconds=1)
 
 
 dm = DataManager(config='anonymoususage.cfg')
-# dm.consolidate_individuals(delete_parts=True)
-# dm.consolidate_into_master()
+dm.consolidate_individuals(delete_parts=True)
+dm.consolidate_into_master()
 if os.path.exists('./master.db'):
     os.remove('./master.db')
 dm.download_master('./master.db')
@@ -33,6 +33,7 @@ uuids = tools.get_uuid_list(db)
 # tools.delete_row(db2, 'power_cycles', "Count", 6)
 # rows_after = tools.get_rows(db2, 'power_cycles')
 # plot_stat(db, ('total_line_length_m', 'power_cycles', 'screenshots'))
-for u in uuids:
-    plot_stat(db, ('power_cycles',), uuid=u)
+plot_stat(db, ('total_line_length_m', 'power_cycles'))
+# for u in uuids:
+#     plot_stat(db, ('power_cycles',), uuid=u)
 matplmatsdf=3
