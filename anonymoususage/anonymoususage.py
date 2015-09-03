@@ -42,7 +42,7 @@ class AnonymousUsageTracker(object):
         if not isinstance(check_interval, datetime.timedelta):
             raise IntervalError(check_interval)
 
-        self.uuid = uuid
+        self.uuid = str(uuid)
         self.filename = os.path.splitext(tracker_file)[0]
         self.tracker_file = self.filename + '.db'
         self.submit_interval = submit_interval
