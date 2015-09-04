@@ -5,6 +5,7 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.dates import DateFormatter
+from collections import Iterable
 from tools import *
 
 
@@ -56,6 +57,10 @@ def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), dat
 
     """
     fig, plots = _get_figure(len(table_names))
+    if isinstance(plots, Iterable):
+        plots = plots.flatten()
+    else:
+        plots = [plots]
     plots = list(plots)
     plotted_tables = set()
     handles = []
@@ -66,7 +71,7 @@ def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), dat
         for jj, uuid in enumerate(uuids):
             data = get_datetime_sorted_rows(dbconn, table_name, uuid=uuid, column='Count')
             if len(data) > 1:
-                plot = plots.flatten()[ii]
+                plot = plots[ii]
                 plot.set_title(table_name)
                 times, counts = zip(*data)
                 plot.plot_date(times, counts, '-o%s'% colors[jj], label=table_name)
