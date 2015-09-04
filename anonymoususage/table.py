@@ -64,16 +64,10 @@ class Table(object):
         rows = []
         # Get values from the partial db first
         if check_table_exists(self.tracker.dbcon_part, self.name):
-            cur = self.tracker.dbcon_part.cursor()
-            cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
-            rows.extend(cur.fetchall())
+            rows.extend(get_last_row(self.tracker.dbcon_part, self.name, n))
         # Then add rows from the master if required
         if len(rows) < n and check_table_exists(self.tracker.dbcon_master, self.name):
-            cur = self.tracker.dbcon_master.cursor()
-            # cur.execute("SELECT * FROM %s" % self.name)
-            cur.execute("SELECT * FROM %s ORDER BY Count DESC LIMIT %d;" % (self.name, n))
-            rows.extend(cur.fetchall())
-
+            rows.extend(get_last_row(self.tracker.dbcon_master, self.name, n))
         return rows[-n:]
 
     def delete_last(self):

@@ -10,7 +10,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
-           'get_number_of_rows']
+           'get_number_of_rows', 'get_last_row']
 
 
 def create_table(dbcon, name, columns):
@@ -141,6 +141,24 @@ def get_rows(dbconn, tablename, uuid=None):
     else:
         cursor.execute("SELECT * FROM %s" % tablename)
     rows = cursor.fetchall()
+    return rows
+
+
+def get_last_row(dbconn, tablename, n=1, uuid=None):
+    """
+    Returns the last `n` rows in the table
+    :param dbconn: database connection
+    :param tablename: name of the table
+    :param n: number of rows to return from the end of the table
+    :param uuid: Optional UUID to select from
+    :return: If n > 1, a list of rows. If n=1, a single row
+    """
+    cur = dbconn.cursor()
+    if uuid:
+        cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
+    else:
+        cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+    rows = cur.fetchall()
     return rows
 
 

@@ -3,6 +3,7 @@ __author__ = 'calvin'
 import logging
 import itertools
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.dates import DateFormatter
 from tools import *
 
@@ -10,15 +11,52 @@ from tools import *
 def _get_figure(n_items):
     figure, plots = plt.subplots(nrows=n_items, ncols=1, sharex=True)
     if n_items == 1:
-        plots = [plots]
+        return figure, plots
     else:
         plots = plots.flatten()
-    return figure, plots[:n_items]
+        return figure, plots[:n_items]
+
+
+def plot_total_statistics(dbconn, table_names):
+    """
+    Plot the cumulative statistics for table names in a bar plot.
+    :param dbconn: database connection
+    :param table_names: list of table names to plot
+    """
+    fig, plot = _get_figure(1)
+    stat_count = {t: 0 for t in table_names}
+    uuids = get_uuid_list(dbconn)
+    for table in stat_count.iterkeys():
+        for uuid in uuids:
+            last_row = get_last_row(dbconn, table, uuid=uuid)
+            if last_row:
+                count = last_row['Count']
+                stat_count[table] += count
+
+    table_names, table_values = zip(*stat_count.items())
+    ind = np.arange(len(table_names))
+    colors = [c for c in itertools.islice(plot._get_lines.color_cycle, 0, len(table_names))]
+    plot.bar(ind, table_values, color=colors)
+    # add some text for labels, title and axes ticks
+    plot.set_ylabel('Count')
+    plot.set_title('Statistic Totals')
+    plot.set_xticks(ind+0.35)
+    plot.set_xticklabels(table_names)
+    plt.show()
 
 
 def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):
-    fig, plots = _get_figure(len(table_names))
+    """
+    Plot statistics as a function of time for table names in a line plot.
+    :param dbconn: database connection
+    :param table_names: list of table names to plot
+    :param uuid: UUID to plot, if None all UUIDs will be plotted
+    :param data_limits: tuple of (min_datetime, max_datetime) to be used for x axis range
+    :param datefmt: string formatter for the date axis
 
+    """
+    fig, plots = _get_figure(len(table_names))
+    plots = list(plots)
     plotted_tables = set()
     handles = []
     uuids = get_uuid_list(dbconn) if uuid is None else [uuid]
