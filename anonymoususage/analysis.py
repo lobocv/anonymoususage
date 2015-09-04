@@ -30,7 +30,7 @@ def plot_total_statistics(dbconn, table_names):
         for uuid in uuids:
             last_row = get_last_row(dbconn, table, uuid=uuid)
             if last_row:
-                count = last_row['Count']
+                count = last_row[0]['Count']
                 stat_count[table] += count
 
     table_names, table_values = zip(*stat_count.items())
