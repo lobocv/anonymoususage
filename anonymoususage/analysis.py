@@ -46,6 +46,11 @@ def plot_total_statistics(dbconn, table_names):
     plt.show()
 
 def plot_state(dbconn, table_names):
+    """
+    Plot the distribution of users for a State.
+    :param dbconn: database connection
+    :param table_names: list of State table names to plot
+    """
     fig, plots = _get_figure(len(table_names), sharey=True)
     if isinstance(plots, Iterable):
         plots = plots.flatten()
