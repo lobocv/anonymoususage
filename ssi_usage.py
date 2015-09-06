@@ -1,6 +1,6 @@
 __author__ = 'calvin'
 
-from anonymoususage.analysis import plot_statistic, plot_total_statistics
+from anonymoususage.analysis import plot_statistic, plot_total_statistics, plot_state
 from anonymoususage.datamanager import DataManager
 from anonymoususage.database import DataBase
 import sqlite3
@@ -14,8 +14,8 @@ interval = datetime.timedelta(seconds=1)
 
 
 dm = DataManager(config='anonymoususage.cfg')
-dm.consolidate_individuals(delete_parts=True)
-dm.consolidate_into_master()
+# dm.consolidate_individuals(delete_parts=True)
+# dm.consolidate_into_master()
 if os.path.exists('./master.db'):
     os.remove('./master.db')
 dm.download_master('./master.db')
@@ -33,8 +33,9 @@ uuids = tools.get_uuid_list(db)
 # tools.delete_row(db2, 'power_cycles', "Count", 6)
 # rows_after = tools.get_rows(db2, 'power_cycles')
 # plot_stat(db, ('total_line_length_m', 'power_cycles', 'screenshots'))
-plot_total_statistics(db, ('power_cycles', 'lines', 'grids', 'screenshots', '__submissions__'))
-plot_statistic(db, ('total_line_length_m', 'power_cycles', 'lines', 'screenshots', '__submissions__'))
+plot_state(db, ('units', 'grid_line_visibility'))
+# plot_total_statistics(db, ('power_cycles', 'lines', 'grids', 'screenshots', '__submissions__'))
+# plot_statistic(db, ('total_line_length_m', 'power_cycles', 'lines', 'screenshots', '__submissions__'))
 # for u in uuids:
 #     plot_stat(db, ('power_cycles',), uuid=u)
 matplmatsdf=3

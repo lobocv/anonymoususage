@@ -5,12 +5,12 @@ import itertools
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.dates import DateFormatter
-from collections import Iterable
+from collections import Iterable, Counter
 from tools import *
 
 
-def _get_figure(n_items):
-    figure, plots = plt.subplots(nrows=n_items, ncols=1, sharex=True)
+def _get_figure(n_items, **subplot_kwargs):
+    figure, plots = plt.subplots(nrows=n_items, ncols=1, **subplot_kwargs)
     if n_items == 1:
         return figure, plots
     else:
@@ -45,6 +45,33 @@ def plot_total_statistics(dbconn, table_names):
     plot.set_xticklabels(table_names)
     plt.show()
 
+def plot_state(dbconn, table_names):
+    fig, plots = _get_figure(len(table_names), sharey=True)
+    if isinstance(plots, Iterable):
+        plots = plots.flatten()
+    else:
+        plots = [plots]
+    uuids = get_uuid_list(dbconn)
+    for ii, table in enumerate(table_names):
+        counter = Counter()
+        options = set()
+        for uuid in uuids:
+            last_row = get_last_row(dbconn, table, uuid=uuid)
+            if last_row:
+                state = last_row[0]['State']
+                options.add(state)
+                counter[state] += 1
+        plot = plots[ii]
+        ind = np.arange(len(options))
+        values = [counter[k] for k in options]
+        colors = [c for c in itertools.islice(plot._get_lines.color_cycle, 0, len(options))]
+        plot.bar(ind, values, color=colors)
+        plot.set_ylabel('Count')
+        plot.set_title('%s' % table)
+        plot.set_xticks(ind+0.35)
+        plot.set_xticklabels(list(options))
+    plt.show()
+
 
 def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):
     """
@@ -56,7 +83,7 @@ def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), dat
     :param datefmt: string formatter for the date axis
 
     """
-    fig, plots = _get_figure(len(table_names))
+    fig, plots = _get_figure(len(table_names), sharex=True)
     if isinstance(plots, Iterable):
         plots = plots.flatten()
     else:
