@@ -45,6 +45,7 @@ def plot_total_statistics(dbconn, table_names):
     plot.set_xticklabels(table_names)
     plt.show()
 
+
 def plot_state(dbconn, table_names):
     """
     Plot the distribution of users for a State.
@@ -127,7 +128,6 @@ def plot_timer(dbconn, table_names, show_average=True, time_units='minutes'):
         plt.legend(handles + handles2, labels + labels2,  loc='upper center', labelspacing=1., ncol=2)
 
     plt.show()
-
 
 
 def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):
