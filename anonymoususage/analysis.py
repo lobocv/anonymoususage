@@ -78,6 +78,50 @@ def plot_state(dbconn, table_names):
     plt.show()
 
 
+def plot_timer(dbconn, table_names, show_average=True):
+    """
+    Plot the total and average times of Timers.
+    :param dbconn: database connection
+    :param show_average: Show the average times on a secondary y-axis (boolean).
+    :param table_names: list of Timer table names to plot
+    """
+    fig, plot = _get_figure(1, sharey=True)
+    uuids = get_uuid_list(dbconn)
+
+    average_time_s = Counter()
+    total_time_s = Counter()
+    for ii, table in enumerate(table_names):
+        for uuid in uuids:
+            last_row = get_last_row(dbconn, table, uuid=uuid)
+            n_rows = get_number_of_rows(dbconn, table, uuid=uuid)
+            if last_row:
+                count = last_row[0]['Count']
+                total_time_s[table] += count
+                average_time_s[table] += count / n_rows
+
+    average_times = [average_time_s[k] for k in table_names]
+    total_times = [total_time_s[k] for k in table_names]
+    ind = np.arange(len(table_names))
+    w = 0.2
+    plot.bar(ind, total_times, color='b', width=w, align='center', label='Total Time')
+    plot.set_ylabel('Total Time (seconds)')
+    plot.set_xticks(ind+w if show_average else ind)
+    plot.set_xticklabels(table_names)
+    if show_average:
+        # Secondary axis
+        ax2 = plot.twinx()
+        ax2.bar(ind+w, average_times, color='r', width=w, align='center', label='Average Time')
+        ax2.set_ylabel('Average Time (seconds)')
+
+        handles, labels = plot.get_legend_handles_labels()
+        handles2, labels2 = ax2.get_legend_handles_labels()
+
+        plt.legend(handles + handles2, labels + labels2,  loc='upper center', labelspacing=1., ncol=2)
+
+    plt.show()
+
+
+
 def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):
     """
     Plot statistics as a function of time for table names in a line plot.
