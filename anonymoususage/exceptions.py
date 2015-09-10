@@ -25,3 +25,12 @@ class TableNameError(AnonymousUsageError):
     def __str__(self):
         return 'Table name "{}" cannot contain spaces. Consider "{}" instead.'.format(self.name,
                                                                                       self.name.replace(' ', '_'))
+
+
+class InvalidCheckpointError(AnonymousUsageError):
+
+    def __init__(self, checkpoint):
+        self.checkpoint = checkpoint
+
+    def __str__(self):
+        return 'Checkpoint "{}" assignment is not in the valid list of checkpoints'.format(self.checkpoint)

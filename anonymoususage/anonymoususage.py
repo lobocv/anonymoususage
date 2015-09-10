@@ -5,13 +5,13 @@ import datetime
 import time
 import sqlite3
 import logging
-import sys
 import re
 import threading
 import ConfigParser
 
-from .table import Table, check_table_exists
+from .table import Table
 from .state import State
+from .sequence import Sequence
 from .statistic import Statistic
 from .exceptions import IntervalError
 from .timer import Timer
@@ -115,7 +115,16 @@ class AnonymousUsageTracker(object):
         self._tables[name] = State(name, self, initial_state, **state_kw)
 
     def track_time(self, name):
+        """
+        Create a Timer object in the Tracker.
+        """
         self._tables[name] = Timer(name, self)
+
+    def track_sequence(self, name, checkpoints):
+        """
+        Create a Sequence object in the Tracker.
+        """
+        self._tables[name] = Sequence(name, self, checkpoints)
 
     def get_row_count(self):
         info = {}

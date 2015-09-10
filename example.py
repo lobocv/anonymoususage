@@ -1,5 +1,7 @@
 import uuid
 import datetime
+import logging
+logging.getLogger().setLevel(logging.DEBUG)
 from anonymoususage import AnonymousUsageTracker, NO_STATE
 
 unique_identifier = uuid.uuid4().hex
@@ -14,6 +16,7 @@ tracker = AnonymousUsageTracker(uuid=unique_identifier,
 
 tracker.track_statistic('quests_complete')
 tracker.track_statistic('monsters_killed')
+tracker.track_sequence('round_trip', checkpoints=('The Shire', 'Mordor', 'Gondor'))
 tracker.track_state('server', initial_state=NO_STATE)
 tracker.track_time('play_time')
 
@@ -41,7 +44,18 @@ def kill_monster():
     # Completing quest code goes here
     tracker['monsters_killed'] += 1
 
+def go_to_town(town):
+    tracker['round_trip'] = town
 
-sdf=3
+
+login('ServerA', 'calvin', 'mypassword')
+go_to_town('The Shire')
+go_to_town('Mordor')
+kill_monster()
+kill_monster()
+go_to_town('Gondor')
+hand_in_quests(['Kill Two Monsters'])
+
+
 tracker.close()
 
