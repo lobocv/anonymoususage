@@ -13,7 +13,7 @@ from .table import Table
 from .state import State
 from .sequence import Sequence
 from .statistic import Statistic
-from .exceptions import IntervalError
+from .exceptions import IntervalError, TableConflictError
 from .timer import Timer
 from .tools import *
 
@@ -106,24 +106,32 @@ class AnonymousUsageTracker(object):
         """
         Create a Statistic object in the Tracker.
         """
+        if name in self._tables:
+            raise TableConflictError(name)
         self._tables[name] = Statistic(name, self)
 
     def track_state(self, name, initial_state, **state_kw):
         """
         Create a State object in the Tracker.
         """
+        if name in self._tables:
+            raise TableConflictError(name)
         self._tables[name] = State(name, self, initial_state, **state_kw)
 
     def track_time(self, name):
         """
         Create a Timer object in the Tracker.
         """
+        if name in self._tables:
+            raise TableConflictError(name)
         self._tables[name] = Timer(name, self)
 
     def track_sequence(self, name, checkpoints):
         """
         Create a Sequence object in the Tracker.
         """
+        if name in self._tables:
+            raise TableConflictError(name)
         self._tables[name] = Sequence(name, self, checkpoints)
 
     def get_row_count(self):

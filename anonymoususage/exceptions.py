@@ -27,6 +27,15 @@ class TableNameError(AnonymousUsageError):
                                                                                       self.name.replace(' ', '_'))
 
 
+class TableConflictError(AnonymousUsageError):
+
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return 'Table name "{}" already exists in this usage tracker.'.format(self.name)
+
+
 class InvalidCheckpointError(AnonymousUsageError):
 
     def __init__(self, checkpoint):
