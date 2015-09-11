@@ -1,13 +1,11 @@
 __author__ = 'calvin'
 
 import sqlite3
-
 from collections import defaultdict
-from tools import *
+from anonymoususage.tools import *
 
 
 class DataBase(sqlite3.Connection):
-
     def __init__(self, *args, **kwargs):
         super(DataBase, self).__init__(*args, **kwargs)
         self.row_factory = sqlite3.Row

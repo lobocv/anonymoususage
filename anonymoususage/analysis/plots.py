@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.dates import DateFormatter
 from collections import Iterable, Counter
-from tools import *
+from anonymoususage.tools import *
+
+
+__all__ = ['plot_total_statistics', 'plot_state', 'plot_timer', 'plot_statistic']
 
 
 def _get_figure(n_items, **subplot_kwargs):
