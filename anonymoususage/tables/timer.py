@@ -91,14 +91,17 @@ class Timer(Statistic):
         raise NotImplementedError('Cannot subtract from timer.')
 
     def __repr__(self):
-        last_two = self.get_last(2)
-        if len(last_two) == 1:
-            last_time = last_two[0]['Count']
-        elif len(last_two) == 0:
-            return "Timer ({s.name}): Total 0 s".format(s=self)
+        if hasattr(self, 'count'):
+            last_two = self.get_last(2)
+            if len(last_two) == 1:
+                last_time = last_two[0]['Count']
+            elif len(last_two) == 0:
+                return "Timer ({s.name}): Total 0 s".format(s=self)
+            else:
+                last_time = abs(last_two[1]['Count'] - last_two[0]['Count'])
+            average = self.get_average('None')
+            return "Timer ({s.name}): Total {s.count} s, last {} s, average {} s".format(last_time,
+                                                                                         average,
+                                                                                         s=self)
         else:
-            last_time = abs(last_two[1]['Count'] - last_two[0]['Count'])
-        average = self.get_average('None')
-        return "Timer ({s.name}): Total {s.count} s, last {} s, average {} s".format(last_time,
-                                                                                     average,
-                                                                                     s=self)
+            return "Timer ({s.name})".format(s=self)
