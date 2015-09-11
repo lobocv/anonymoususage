@@ -26,17 +26,18 @@ class State(Table):
     def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False):
         super(State, self).__init__(name, tracker)
         self.keep_redundant = keep_redundant
-        self.state = initial_state
-        if self.count:
-            self.last_value = self.get_last(1)[0]['State']
-        elif initial_state is NO_STATE:
-            self.last_value = NO_STATE
+
+        if self.count == 0:
+            # This is a new table
+            self.state = initial_state
+            if initial_state is not NO_STATE:
+                # If the initial state was not NO_STATE, then add it to the database
+                self.insert(self.state)
         else:
-            self.last_value = NO_STATE
-            self.insert(self.state)
+            self.state = self.get_last(1)[0]['State']
 
     def insert(self, value):
-        if not self.keep_redundant and value == self.last_value:
+        if not self.keep_redundant and value == self.state:
             # Don't add redundant information, ie if the state value is the same as the previous do not insert a new row
             return
 
@@ -45,11 +46,10 @@ class State(Table):
         try:
             self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
                                                                                 args=(self.tracker.uuid,
-                                                                                      self.count+1,
+                                                                                      self.count + 1,
                                                                                       str(value),
                                                                                       dt)))
             self.tracker.dbcon.commit()
-            self.last_value = value
         except sqlite3.Error as e:
             logger.error(e)
         else:
@@ -59,4 +59,5 @@ class State(Table):
         return self
 
     def __repr__(self):
-        return "State ({s.name}): {s.last_value}".format(s=self)
+        state = self.state if self.state is not NO_STATE else 'No State'
+        return "State ({s.name}): {state}".format(s=self, state=state)
