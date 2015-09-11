@@ -115,19 +115,6 @@ def check_table_exists(dbcon, tablename):
         return result[0] == tablename
 
 
-def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
-    """
-    Create and return a logged in FTP object.
-    :return:
-    """
-    ftp = ftplib.FTP()
-    ftp.connect(host=host, port=port, timeout=timeout)
-    ftp.login(user=user, passwd=passwd, acct=acct)
-    ftp.cwd(path)
-    logger.debug('Login to %s successful.' % host)
-    return ftp
-
-
 def get_rows(dbconn, tablename, uuid=None):
     """
     Return all the rows in a table from dbconn
@@ -190,19 +177,15 @@ def merge_databases(master, part):
     master.commit()
 
 
-def ftp_download(ftp, ftp_path, local_path):
-    """
-    Download the master database
-    :param ftp: ftp connection
-    :param ftp_path: path to file on the ftp server
-    :param local_path: local path to download file
-    :return:
-    """
-    with open(local_path, 'wb') as _f:
-        ftp.retrbinary('RETR %s' % ftp_path, _f.write)
-
-
 def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
+    """
+    Get a list of datetime sorted rows from a table in the database
+    :param dbconn: database connection
+    :param table_name: name of table in the database
+    :param uuid: optional uuid to pull from
+    :param column: optional column/field in the table to pull instead of rows
+    :returns: a list of tuples containing (datetime, row) pairs or (datetime, column) pairs if columns is specified.
+    """
     rows = get_rows(dbconn, table_name, uuid=uuid)
     data = []
     for r in rows:
@@ -217,9 +200,39 @@ def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
 
 
 def rename_table(dbconn, original, new):
+    """
+    Rename a table in the database
+    :param dbconn: database connection
+    :param original: original table name
+    :param new: new table name
+    """
     cur = dbconn.cursor()
     try:
         cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
     except sqlite3.OperationalError as e:
         logger.error(e)
 
+
+def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
+    """
+    Create and return a logged in FTP object.
+    :return:
+    """
+    ftp = ftplib.FTP()
+    ftp.connect(host=host, port=port, timeout=timeout)
+    ftp.login(user=user, passwd=passwd, acct=acct)
+    ftp.cwd(path)
+    logger.debug('Login to %s successful.' % host)
+    return ftp
+
+
+def ftp_download(ftp, ftp_path, local_path):
+    """
+    Download the master database
+    :param ftp: ftp connection
+    :param ftp_path: path to file on the ftp server
+    :param local_path: local path to download file
+    :return:
+    """
+    with open(local_path, 'wb') as _f:
+        ftp.retrbinary('RETR %s' % ftp_path, _f.write)
