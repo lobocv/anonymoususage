@@ -10,7 +10,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
-           'get_number_of_rows', 'get_last_row']
+           'get_number_of_rows', 'get_last_row', 'rename_table']
 
 
 def create_table(dbcon, name, columns):
@@ -214,3 +214,12 @@ def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
     data.sort()
 
     return data
+
+
+def rename_table(dbconn, original, new):
+    cur = dbconn.cursor()
+    try:
+        cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
+    except sqlite3.OperationalError as e:
+        logger.error(e)
+

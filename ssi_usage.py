@@ -19,12 +19,18 @@ if os.path.exists('./master.db'):
 dm.download_master('./master.db')
 
 db = sqlite3.connect('./master.db', factory=DataBase)
+tools.rename_table(db, 'total_line_length_m', 'line_length_m')
+tools.rename_table(db, 'total_line_collection_time', 'line_collection_time')
+tools.rename_table(db, 'total_grid_area_m2', 'grid_area_m2')
+tools.rename_table(db, 'total_grid_line_length_m', 'grid_line_length_m')
+tools.rename_table(db, 'total_grid_collection_time', 'grid_collection_time')
+
 uuids = tools.get_uuid_list(db)
 
 
 plot_state(db, ('units', 'grid_line_visibility'))
-plot_timer(db, ('total_line_collection_time', 'total_grid_collection_time'))
+plot_timer(db, ('line_collection_time', 'grid_collection_time'))
 plot_total_statistics(db, ('power_cycles', 'lines', 'grids', 'screenshots', '__submissions__'))
-plot_statistic(db, ('total_line_length_m', 'power_cycles', 'lines', 'screenshots', '__submissions__'))
+plot_statistic(db, ('line_length_m', 'power_cycles', 'lines', 'screenshots', '__submissions__'))
 
 matplmatsdf=3
