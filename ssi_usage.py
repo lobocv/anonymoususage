@@ -1,8 +1,8 @@
 __author__ = 'calvin'
 
 from anonymoususage.analysis import plot_stat
-from anonymoususage.datamanager import DataManager
-from anonymoususage.database import DataBase
+from anonymoususage.analysis.datamanager import DataManager
+from anonymoususage.analysis.database import DataBase
 import sqlite3
 import datetime
 import logging

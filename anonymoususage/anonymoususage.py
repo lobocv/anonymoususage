@@ -9,12 +9,8 @@ import re
 import threading
 import ConfigParser
 
-from .table import Table
-from .state import State
-from .sequence import Sequence
-from .statistic import Statistic
+from tables import Table, Statistic, State, Timer, Sequence
 from .exceptions import IntervalError, TableConflictError
-from .timer import Timer
 from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)

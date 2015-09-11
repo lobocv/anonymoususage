@@ -8,7 +8,7 @@ from itertools import imap
 from operator import eq
 from collections import deque
 from .table import Table
-from .exceptions import InvalidCheckpointError
+from anonymoususage.exceptions import InvalidCheckpointError
 
 logger = logging.getLogger('AnonymousUsage')
 

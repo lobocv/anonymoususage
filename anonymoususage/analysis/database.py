@@ -2,7 +2,7 @@ __author__ = 'calvin'
 
 import sqlite3
 
-from tools import *
+from anonymoususage.tools import *
 
 
 class DataBase(sqlite3.Connection):

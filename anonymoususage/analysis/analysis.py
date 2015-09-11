@@ -5,7 +5,7 @@ import logging
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 
-from tools import *
+from anonymoususage.tools import *
 
 
 def plot_stat(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):

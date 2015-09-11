@@ -9,7 +9,7 @@ import ftplib
 import logging
 import sqlite3
 
-from .tools import *
+from anonymoususage.tools import *
 from collections import defaultdict
 
 
