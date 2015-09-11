@@ -19,11 +19,12 @@ if os.path.exists('./master.db'):
 dm.download_master('./master.db')
 
 db = sqlite3.connect('./master.db', factory=DataBase)
-tools.rename_table(db, 'total_line_length_m', 'line_length_m')
-tools.rename_table(db, 'total_line_collection_time', 'line_collection_time')
-tools.rename_table(db, 'total_grid_area_m2', 'grid_area_m2')
-tools.rename_table(db, 'total_grid_line_length_m', 'grid_line_length_m')
-tools.rename_table(db, 'total_grid_collection_time', 'grid_collection_time')
+db.rename_table('total_line_length_m', 'line_length_m')
+db.rename_table('total_line_length_m', 'power_cycles')
+db.rename_table('total_line_collection_time', 'line_collection_time')
+db.rename_table('total_grid_area_m2', 'grid_area_m2')
+db.rename_table('total_grid_line_length_m', 'grid_line_length_m')
+db.rename_table('total_grid_collection_time', 'grid_collection_time')
 
 uuids = tools.get_uuid_list(db)
 

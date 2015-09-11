@@ -207,10 +207,7 @@ def rename_table(dbconn, original, new):
     :param new: new table name
     """
     cur = dbconn.cursor()
-    try:
-        cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
-    except sqlite3.OperationalError as e:
-        logger.error(e)
+    cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
 
 
 def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
