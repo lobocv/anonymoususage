@@ -22,16 +22,25 @@ class Timer(Statistic):
         self._delta_seconds = 0
 
     def start_timer(self):
+        """
+        Start the timer.
+        """
         self._start_time = datetime.datetime.now()
         self._delta_seconds = 0
         logger.debug('AnonymousUsage: Starting %s timer' % self.name)
 
     def pause_timer(self):
+        """
+        Pause the timer.
+        """
         timedelta = datetime.datetime.now() - self._start_time
         self._delta_seconds += timedelta.total_seconds()
         logger.debug('AnonymousUsage: Pausing %s timer' % self.name)
 
     def stop_timer(self):
+        """
+        Stop the timer and commit value to the database
+        """
         if self._start_time is None:
             logger.debug('AnonymousUsage: Cannot stop timer that has not been started.')
             return
@@ -44,32 +53,65 @@ class Timer(Statistic):
 
     @property
     def total_minutes(self):
+        """
+        Return the total time in minutes. Excludes timers in progress.
+        """
         return self.count / 60.
 
     @property
     def total_hours(self):
+        """
+        Return the total time in hours. Excludes timers in progress.
+        """
         return self.count / 3600.
 
     @property
     def total_seconds(self):
+        """
+        Return the total time in seconds. Excludes timers in progress.
+        """
         return self.count
 
     @property
     def total_days(self):
+        """
+        Return the total time in days. Excludes timers in progress.
+        """
         return self.count / 86400.
 
     def strftime(self, format, average=False):
+        """
+        Return a formatted string of the time.
+        :param format:  time.strftime format string
+        :param bool average: Use the average time instead of total
+        """
         seconds = self.get_average(0) if average else self.count
         return time.strftime(format, time.gmtime(seconds))
 
     def formatted_total_time(self, **kwargs):
+        """
+        Convenience method for format_time using the total time
+        """
         return self.format_time(self.count, **kwargs)
 
     def formatted_average_time(self, **kwargs):
+        """
+        Convenience method for format_time using the average time
+        """
         return self.format_time(self.get_average(default=0), **kwargs)
 
     @staticmethod
     def format_time(n_seconds, seconds=True, minutes=True, hours=True, days=True, years=True):
+        """
+        Return a formatted string of the total time in years, days, hours, minutes and seconds.
+        :param bool n_seconds: Number of seconds
+        :param bool seconds: Show seconds
+        :param bool minutes: Show minutes
+        :param bool hours: Show hours
+        :param bool days: Show days
+        :param bool years: Show years
+        :return:
+        """
         y = d = h = m = 0
         if years:
             y, n_seconds = divmod(n_seconds, 31536000)
