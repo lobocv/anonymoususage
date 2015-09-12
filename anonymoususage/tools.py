@@ -16,6 +16,7 @@ __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_e
 def create_table(dbcon, name, columns):
     """
     Create a table in the database.
+
     :param dbcon: database
     :return: True if a new table was created
     """
@@ -30,6 +31,7 @@ def create_table(dbcon, name, columns):
 def delete_row(dbconn, table_name, field, value):
     """
     Delete a row from a table in a database.
+
     :param dbconn: data base connection
     :param table_name: name of the table
     :param field: field of the table to target
@@ -42,6 +44,7 @@ def delete_row(dbconn, table_name, field, value):
 def get_table_list(dbconn):
     """
     Get a list of tables that exist in dbconn
+
     :param dbconn: database connection
     :return: List of table names
     """
@@ -53,6 +56,7 @@ def get_table_list(dbconn):
 def get_uuid_list(dbconn):
     """
     Get a list of tables that exist in dbconn
+
     :param dbconn: master database connection
     :return: List of uuids in the database
     """
@@ -81,6 +85,7 @@ def get_table_columns(dbconn, tablename):
 def get_number_of_rows(dbcon, tablename, uuid=None):
     """
     Return the number of rows in a table
+
     :param dbcon: database connection
     :param tablename: table name
     :return: Boolean
@@ -101,6 +106,7 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
 def check_table_exists(dbcon, tablename):
     """
     Check if a table exists in the database.
+
     :param dbcon: database connection
     :param tablename: table name
     :return: Boolean
@@ -118,6 +124,7 @@ def check_table_exists(dbcon, tablename):
 def get_rows(dbconn, tablename, uuid=None):
     """
     Return all the rows in a table from dbconn
+
     :param dbconn: database connection
     :param tablename: name of the table
     :return: List of sqlite3.Row objects
@@ -134,6 +141,7 @@ def get_rows(dbconn, tablename, uuid=None):
 def get_last_row(dbconn, tablename, n=1, uuid=None):
     """
     Returns the last `n` rows in the table
+
     :param dbconn: database connection
     :param tablename: name of the table
     :param n: number of rows to return from the end of the table
@@ -152,6 +160,7 @@ def get_last_row(dbconn, tablename, n=1, uuid=None):
 def merge_databases(master, part):
     """
     Merge the partial database into the master database.
+
     :param master: database connection to the master database
     :param part: database connection to the partial database
     """
@@ -180,6 +189,7 @@ def merge_databases(master, part):
 def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
     """
     Get a list of datetime sorted rows from a table in the database
+
     :param dbconn: database connection
     :param table_name: name of table in the database
     :param uuid: optional uuid to pull from
@@ -202,6 +212,7 @@ def get_datetime_sorted_rows(dbconn, table_name, uuid=None, column=None):
 def rename_table(dbconn, original, new):
     """
     Rename a table in the database
+
     :param dbconn: database connection
     :param original: original table name
     :param new: new table name
@@ -213,7 +224,8 @@ def rename_table(dbconn, original, new):
 def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
     """
     Create and return a logged in FTP object.
-    :return:
+
+    :return: A logged in FTP object.
     """
     ftp = ftplib.FTP()
     ftp.connect(host=host, port=port, timeout=timeout)
@@ -226,6 +238,7 @@ def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
 def ftp_download(ftp, ftp_path, local_path):
     """
     Download the master database
+
     :param ftp: ftp connection
     :param ftp_path: path to file on the ftp server
     :param local_path: local path to download file

@@ -2,8 +2,8 @@ __author__ = 'calvin'
 
 import logging
 
-from anonymoususage.tools import *
-from anonymoususage.exceptions import *
+from ..tools import *
+from ..exceptions import *
 
 logger = logging.getLogger('AnonymousUsage')
 

@@ -9,7 +9,7 @@ import re
 import threading
 import ConfigParser
 
-from tables import Table, Statistic, State, Timer, Sequence
+from .tables import Table, Statistic, State, Timer, Sequence
 from .exceptions import IntervalError, TableConflictError
 from .tools import *
 
@@ -22,6 +22,7 @@ class AnonymousUsageTracker(object):
                  config='', debug=False):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
+
         :param uuid: unique identifier
         :param tracker_file: path to store the database
         :param config: path to store the configuration file.
