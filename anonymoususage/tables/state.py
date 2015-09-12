@@ -6,10 +6,14 @@ import logging
 
 from .table import Table
 
-
 logger = logging.getLogger('AnonymousUsage')
 
-NO_STATE = type('NO_STATE', (object, ), {})
+
+class NO_STATE(object):
+    """
+    Class used to specify that there is no initial value to the State.
+    """
+    pass
 
 
 class State(Table):
@@ -20,7 +24,13 @@ class State(Table):
         tracker.track_state(state_name)
         tracker[state_name] = 'ON'
         tracker[state_name] = 'OFF'
+
+    :param name: Name of the table
+    :param tracker: usage tracker object
+    :param initial_state: Initial value
+    :param bool keep_redundant: Allow for adding of duplicate values to the database.
     """
+
     table_args = ("UUID", "INT"), ("Count", "INT"), ("State", "TEXT"), ("Time", "TEXT")
 
     def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False):
@@ -37,6 +47,13 @@ class State(Table):
             self.state = self.get_last(1)[0]['State']
 
     def insert(self, value):
+        """
+        Insert a value into the table. If keep_redundant is False and the value specified is equal to the currently set
+        value, do not add a row to the database
+
+        :param value: value of the State
+        :returns: self
+        """
         if not self.keep_redundant and value == self.state:
             # Don't add redundant information, ie if the state value is the same as the previous do not insert a new row
             return
