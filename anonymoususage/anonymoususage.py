@@ -18,18 +18,17 @@ logger = logging.getLogger('AnonymousUsage')
 
 
 class AnonymousUsageTracker(object):
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
-                 config='', debug=False):
-        """
-        Create a usage tracker database with statistics from a unique user defined by the uuid.
+    """
+    Create a usage tracker database with statistics from a unique user defined by the uuid.
 
-        :param uuid: unique identifier
-        :param tracker_file: path to store the database
-        :param config: path to store the configuration file.
-        :param check_interval: datetime.timedelta object specifying how often the tracker should check to see if an
-                               upload is required
-        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
-        """
+    :param uuid: unique identifier
+    :param tracker_file: path to store the database
+    :param config: path to store the configuration file.
+    :param check_interval: datetime.timedelta object specifying how often the tracker should check to see if an
+                           upload is required
+    :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
+    """
+    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL, config='', debug=False):
 
         if debug:
             logger.setLevel(logging.DEBUG)
@@ -75,7 +74,7 @@ class AnonymousUsageTracker(object):
         if self._requires_submission() and self._ftp:
             self.ftp_submit()
 
-        self.start_watcher()
+        self.resume_watcher()
 
     def __getitem__(self, item):
         """
@@ -90,18 +89,34 @@ class AnonymousUsageTracker(object):
         self._tables[key].insert(value)
 
     def close(self):
+        """
+        Close the database connections (both master and partial)
+        """
         self.dbcon_part.commit()
         self.dbcon_part.close()
         self.dbcon_master.commit()
         self.dbcon_master.close()
 
     def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        """
+        Set up FTP credentials
+
+        :param host: host IP
+        :param user: username
+        :param passwd: password
+        :param path: path to write to relative to login root.
+        :param acct: account
+        :param port: port
+        :param timeout: connection timeout in seconds
+        """
         self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
 
     def track_statistic(self, name):
         """
         Create a Statistic object in the Tracker.
+
+        :param name: name of the Statistic
         """
         if name in self._tables:
             raise TableConflictError(name)
@@ -110,6 +125,10 @@ class AnonymousUsageTracker(object):
     def track_state(self, name, initial_state, **state_kw):
         """
         Create a State object in the Tracker.
+
+        :param name: name of State
+        :param initial_state: initial State value
+        :param state_kw: keyword arguments for State class creation
         """
         if name in self._tables:
             raise TableConflictError(name)
@@ -118,6 +137,8 @@ class AnonymousUsageTracker(object):
     def track_time(self, name):
         """
         Create a Timer object in the Tracker.
+
+        :param name: Name of Timer
         """
         if name in self._tables:
             raise TableConflictError(name)
@@ -126,27 +147,12 @@ class AnonymousUsageTracker(object):
     def track_sequence(self, name, checkpoints):
         """
         Create a Sequence object in the Tracker.
+        :param name: Name of Sequence
+        :param checkpoints: list of checkpoints for the Sequence
         """
         if name in self._tables:
             raise TableConflictError(name)
         self._tables[name] = Sequence(name, self, checkpoints)
-
-    def get_row_count(self):
-        info = {}
-        for db in (self.dbcon_master, self.dbcon_part):
-            cursor = db.cursor()
-            for table, stat in self._tables.items():
-                row_count_query = "SELECT Count() FROM %s" % table
-                try:
-                    cursor.execute(row_count_query)
-                except sqlite3.OperationalError:
-                    continue
-                nrows = cursor.fetchone()[0]
-                if table in info:
-                    info[table]['nrows'] += nrows
-                else:
-                    info[table] = {'nrows': nrows}
-        return info
 
     def ftp_submit(self):
         """
@@ -182,12 +188,13 @@ class AnonymousUsageTracker(object):
         except Exception as e:
             self['__submissions__'].delete_last()
             logger.error(e)
-            self.stop_watcher()
+            self.pause_watcher()
             return False
 
     def load_configuration(self, config):
         """
         Load FTP server credentials from a configuration file.
+        :param config: path to configuration file
         """
         cfg = ConfigParser.ConfigParser()
         with open(config, 'r') as _f:
@@ -196,16 +203,22 @@ class AnonymousUsageTracker(object):
                 self.setup_ftp(**dict(cfg.items('FTP')))
 
     def enable(self):
+        """
+        Enable the upload watcher thread.
+        """
         logger.debug('Enabled.')
-        self.start_watcher()
+        self.resume_watcher()
 
     def disable(self):
-        logger.debug('Disabled.')
-        self.stop_watcher()
-
-    def start_watcher(self):
         """
-        Start the watcher thread that tries to upload usage statistics.
+        Disable the upload watcher thread.
+        """
+        logger.debug('Disabled.')
+        self.pause_watcher()
+
+    def resume_watcher(self):
+        """
+        Resume or start the watcher thread that tries to upload usage statistics.
         """
         if self._watcher and self._watcher.is_alive:
             self._watcher_enabled = True
@@ -216,9 +229,9 @@ class AnonymousUsageTracker(object):
             self._watcher_enabled = True
             self._watcher.start()
 
-    def stop_watcher(self):
+    def pause_watcher(self):
         """
-        Stop the watcher thread that tries to upload usage statistics.
+        Pause the watcher thread that tries to upload usage statistics.
         """
         if self._watcher:
             self._watcher_enabled = False
