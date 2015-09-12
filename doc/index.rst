@@ -65,6 +65,27 @@ Tools
    :members: 
    :undoc-members:
 
+Analysis
+========
+
+DataBase
+--------
+.. automodule:: anonymoususage.analysis.database
+   :members: 
+   :undoc-members:
+
+DataManager
+-----------
+.. automodule:: anonymoususage.analysis.datamanager
+   :members: 
+   :undoc-members:
+
+Plots
+-----
+.. automodule:: anonymoususage.analysis.plots
+   :members: 
+   :undoc-members:
+
 
 Exceptions
 ==========

@@ -24,6 +24,7 @@ def _get_figure(n_items, **subplot_kwargs):
 def plot_total_statistics(dbconn, table_names):
     """
     Plot the cumulative statistics for table names in a bar plot.
+
     :param dbconn: database connection
     :param table_names: list of table names to plot
     """
@@ -52,6 +53,7 @@ def plot_total_statistics(dbconn, table_names):
 def plot_state(dbconn, table_names):
     """
     Plot the distribution of users for a State.
+
     :param dbconn: database connection
     :param table_names: list of State table names to plot
     """
@@ -85,6 +87,7 @@ def plot_state(dbconn, table_names):
 def plot_timer(dbconn, table_names, show_average=True, time_units='minutes'):
     """
     Plot the total and average times of Timers.
+
     :param dbconn: database connection
     :param show_average: Show the average times on a secondary y-axis (boolean).
     :param table_names: list of Timer table names to plot
@@ -136,6 +139,7 @@ def plot_timer(dbconn, table_names, show_average=True, time_units='minutes'):
 def plot_statistic(dbconn, table_names, uuid=None, date_limits=(None, None), datefmt=None):
     """
     Plot statistics as a function of time for table names in a line plot.
+
     :param dbconn: database connection
     :param table_names: list of table names to plot
     :param uuid: UUID to plot, if None all UUIDs will be plotted

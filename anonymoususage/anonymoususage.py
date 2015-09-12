@@ -194,6 +194,7 @@ class AnonymousUsageTracker(object):
     def load_configuration(self, config):
         """
         Load FTP server credentials from a configuration file.
+
         :param config: path to configuration file
         """
         cfg = ConfigParser.ConfigParser()

@@ -22,6 +22,8 @@ class DataManager(object):
     def load_configuration(self, config):
         """
         Load FTP server credentials from a configuration file.
+
+        :param config: path to configuration file
         """
         cfg = ConfigParser.ConfigParser()
         with open(config, 'r') as _f:
@@ -30,6 +32,17 @@ class DataManager(object):
                 self.setup_ftp(**dict(cfg.items('FTP')))
 
     def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        """
+        Set up FTP credentials
+
+        :param host: host IP
+        :param user: username
+        :param passwd: password
+        :param path: path to write to relative to login root.
+        :param acct: account
+        :param port: port
+        :param timeout: connection timeout in seconds
+        """
         self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
 
@@ -58,8 +71,6 @@ class DataManager(object):
         tmpdir = tempfile.mkdtemp('anonymoususage')
 
         for uuid, partial_dbs in uuids.iteritems():
-            # partial_regex = re.compile(r'%s_\d+.db' % uuid)
-            # partial_dbs = partial_regex.findall(all_files)
             if len(partial_dbs):
                 logging.debug('Consolidating UUID %s. %d partial databases found.' % (uuid, len(partial_dbs)))
                 # Look for the master database, if there isn't one, use one of the partials as the new master
@@ -103,6 +114,9 @@ class DataManager(object):
         ftp.close()
 
     def consolidate_into_master(self):
+        """
+        Consolidate individual uuid sub-master databases into the master database.
+        """
         ftp = self.login_ftp()
         files = ftp.nlst()
 
