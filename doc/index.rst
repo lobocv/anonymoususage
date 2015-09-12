@@ -58,8 +58,17 @@ Sequence
    :members: 
    :undoc-members:
 
+
 Tools
 =====
 .. automodule:: anonymoususage.tools
    :members: 
    :undoc-members:
+
+
+Exceptions
+==========
+.. automodule:: anonymoususage.exceptions
+   :members: 
+   :undoc-members:
+

@@ -9,7 +9,9 @@ class AnonymousUsageError(Exception):
 
 
 class IntervalError(AnonymousUsageError):
-
+    """
+    Invalid date time interval specified.
+    """
     def __init__(self, value):
         self.value = value
 
@@ -18,7 +20,9 @@ class IntervalError(AnonymousUsageError):
 
 
 class TableNameError(AnonymousUsageError):
-
+    """
+    Invalid table name specified.
+    """
     def __init__(self, name):
         self.name = name
 
@@ -28,7 +32,9 @@ class TableNameError(AnonymousUsageError):
 
 
 class TableConflictError(AnonymousUsageError):
-
+    """
+    Conflicting table name in the database. Table likely already exists.
+    """
     def __init__(self, name):
         self.name = name
 
@@ -37,7 +43,9 @@ class TableConflictError(AnonymousUsageError):
 
 
 class InvalidCheckpointError(AnonymousUsageError):
-
+    """
+    Invalid checkpoint. Checkpoint does not exist in the list of valid checkpoints.
+    """
     def __init__(self, checkpoint):
         self.checkpoint = checkpoint
 
