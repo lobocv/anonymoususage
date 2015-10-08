@@ -93,7 +93,7 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
             dbcur.execute("SELECT COUNT(*) FROM {name}".format(name=tablename))
         result = dbcur.fetchone()
         dbcur.close()
-        return result[0]
+        return result[0] if result[0] is not None else 0
     else:
         return 0
 
