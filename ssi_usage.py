@@ -12,8 +12,8 @@ logger = logging.basicConfig(level=logging.DEBUG)
 interval = datetime.timedelta(seconds=1)
 
 dm = DataManager(config='anonymoususage.cfg')
-# dm.consolidate_individuals(delete_parts=True)
-# dm.consolidate_into_master()
+dm.consolidate_individuals(delete_parts=True)
+dm.consolidate_into_master()
 if os.path.exists('./master.db'):
     os.remove('./master.db')
 dm.download_master('./master.db')

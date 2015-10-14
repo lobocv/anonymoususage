@@ -91,9 +91,13 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
             dbcur.execute("SELECT COUNT(*) FROM {name} WHERE UUID='{uuid}'".format(name=tablename, uuid=uuid))
         else:
             dbcur.execute("SELECT COUNT(*) FROM {name}".format(name=tablename))
-        result = dbcur.fetchone()
+        try:
+            result = dbcur.fetchone()[0]
+        except IndexError as e:
+            logger.error(e)
+            result = 0
         dbcur.close()
-        return result[0] if result[0] is not None else 0
+        return result
     else:
         return 0
 
