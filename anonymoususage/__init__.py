@@ -1,4 +1,4 @@
-__version__ = '1.0'
+__version__ = '1.10'
 
 try:
     from anonymoususage import AnonymousUsageTracker
