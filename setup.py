@@ -16,5 +16,5 @@ setup(
     download_url='https://github.com/lobocv/anonymoususage/tarball/%s' % __version__,
     keywords=['logging', 'usage', 'tracking', 'statistics', 'anonymous'],
     classifiers=[],
-    install_requires=['sqlite3', 'matplotlib']
+    install_requires=[]
 )
