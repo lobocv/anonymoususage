@@ -97,7 +97,7 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
             logger.error(e)
             result = 0
         dbcur.close()
-        return result
+        return result if isinstance(result, (int, long, float)) else 0
     else:
         return 0
 
