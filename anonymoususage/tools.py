@@ -93,7 +93,7 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
             dbcur.execute("SELECT COUNT(*) FROM {name}".format(name=tablename))
         try:
             result = dbcur.fetchone()[0]
-        except IndexError as e:
+        except (TypeError, IndexError) as e:
             logger.error(e)
             result = 0
         dbcur.close()
@@ -116,7 +116,10 @@ def check_table_exists(dbcon, tablename):
     if result is None:
         return False
     else:
-        return result[0] == tablename
+        try:
+            return result[0] == tablename
+        except IndexError as e:
+            return check_table_exists(dbcon, tablename)
 
 
 def get_rows(dbconn, tablename, uuid=None):
