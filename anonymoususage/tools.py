@@ -47,7 +47,10 @@ def get_table_list(dbconn):
     """
     cur = dbconn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    return [item[0] for item in cur.fetchall()]
+    try:
+        return [item[0] for item in cur.fetchall()]
+    except IndexError:
+        return get_table_list(dbconn)
 
 
 def get_uuid_list(dbconn):
