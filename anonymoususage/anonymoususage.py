@@ -12,6 +12,7 @@ import ConfigParser
 from tables import Table, Statistic, State, Timer, Sequence
 from .exceptions import IntervalError, TableConflictError
 from .tools import *
+from .api import upload_stats
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
 logger = logging.getLogger('AnonymousUsage')
@@ -53,7 +54,7 @@ class AnonymousUsageTracker(object):
         if os.path.isfile(config):
             self.load_configuration(config)
         else:
-            self._ftp = {}
+            self._hq = {}
 
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.tracker_file_master = self.filename + '.db'
@@ -71,8 +72,8 @@ class AnonymousUsageTracker(object):
             self.dbcon = self.dbcon_master
 
         self.track_statistic('__submissions__')
-        if self._requires_submission() and self._ftp:
-            self.ftp_submit()
+        if self._requires_submission() and self._hq:
+            self.hq_submit()
 
         self.start_watcher()
 
@@ -94,8 +95,8 @@ class AnonymousUsageTracker(object):
         self.dbcon_master.commit()
         self.dbcon_master.close()
 
-    def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
-        self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
+    def setup_hq(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        self._hq = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
 
     def track_statistic(self, name):
@@ -147,7 +148,7 @@ class AnonymousUsageTracker(object):
                     info[table] = {'nrows': nrows}
         return info
 
-    def ftp_submit(self):
+    def hq_submit(self):
         """
         Upload the database to the FTP server. Only submit new information contained in the partial database.
         Merge the partial database back into master after a successful upload.
@@ -156,18 +157,11 @@ class AnonymousUsageTracker(object):
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            ftp = login_ftp(**self._ftp)
             with open(self.tracker_file_part, 'rb') as _f:
-                files = self.regex_db.findall(','.join(ftp.nlst()))
-                if files:
-                    regex_number = re.compile(r'_\d+')
-                    n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
-                else:
-                    n = 1
-                new_filename = self.uuid + '_Part%03d.db' % n
-                ftp.storbinary('STOR %s' % new_filename, _f)
-                logger.debug('Submission to %s successful.' % self._ftp['host'])
 
+                logger.debug('Submission to %s successful.' % self._hq['host'])
+                data = database_to_json(self.dbcon_part)
+                upload_stats(self._hq['host'], data)
                 # Merge the local partial database into master
                 merge_databases(self.dbcon_master, self.dbcon_part)
 
@@ -191,8 +185,8 @@ class AnonymousUsageTracker(object):
         cfg = ConfigParser.ConfigParser()
         with open(config, 'r') as _f:
             cfg.readfp(_f)
-            if cfg.has_section('FTP'):
-                self.setup_ftp(**dict(cfg.items('FTP')))
+            if cfg.has_section('HQ'):
+                self._hq = dict(cfg.items('HQ'))
 
     def enable(self):
         logger.debug('Enabled.')
@@ -262,9 +256,9 @@ class AnonymousUsageTracker(object):
             time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
-            if self._ftp and self._requires_submission():
+            if self._hq and self._requires_submission():
                 logger.debug('Attempting to upload usage statistics.')
-                self.ftp_submit()
+                self.hq_submit()
         logger.debug('Watcher stopped.')
         self._watcher = None
 
@@ -277,7 +271,7 @@ if __name__ == '__main__':
                                     tracker_file='/home/calvin/test/testtracker.db',
                                     check_interval=600,
                                     submit_interval=interval)
-    tracker.setup_ftp(host='ftp.sensoft.ca',
+    tracker.setup_hq(host='ftp.sensoft.ca',
                       user='LMX',
                       passwd='G8mu5YLC6CCKkwme',
                       path='./usage')
