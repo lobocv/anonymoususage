@@ -175,7 +175,10 @@ def merge_databases(master, part):
         pcur.execute("SELECT * FROM %s" % table)
         rows = pcur.fetchall()
         if rows:
-            logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
+            try:
+                logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
+            except Exception as e:
+                logging.error(e)
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
 
@@ -245,6 +248,13 @@ def ftp_download(ftp, ftp_path, local_path):
         ftp.retrbinary('RETR %s' % ftp_path, _f.write)
 
 
-def database_to_json(dbconn):
-    data = {table: get_rows(dbconn, table) for table in get_table_list(dbconn)}
-    return data
+def database_to_json(dbconn, tableinfo):
+    dbconn.row_factory = None
+    js = {}
+    for tablename, info in tableinfo.iteritems():
+        rows = get_last_row(dbconn, tablename)
+        if rows:
+            info['data'] = rows[0][2 if info['type'] == 'State' else 1]
+            js[tablename] = info
+    dbconn.row_factory = sqlite3.Row
+    return js
