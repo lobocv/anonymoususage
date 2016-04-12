@@ -198,7 +198,6 @@ class AnonymousUsageTracker(object):
             # errors always exit nicely.
             with open(self.tracker_file_part, 'rb') as _f:
 
-                logger.debug('Submission to %s successful.' % self._hq['host'])
                 tableinfo = self.get_table_info()
                 payload = {'API Key': self._hq['api_key'],
                            'User Identifier': self.uuid,
@@ -207,7 +206,9 @@ class AnonymousUsageTracker(object):
                            'Data': database_to_json(self.dbcon_part, tableinfo)
                            }
 
-                upload_stats(self._hq['host'], payload)
+                response = upload_stats(self._hq['server'], payload)
+                if response == 'Success':
+                    logger.debug('Submission to %s successful.' % self._hq['server'])
                 # Merge the local partial database into master
                 merge_databases(self.dbcon_master, self.dbcon_part)
 
