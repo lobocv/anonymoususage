@@ -111,8 +111,9 @@ class AnonymousUsageTracker(object):
         # Check if info is already in the table
         dbconn = self.dbcon_master if exists_in_master else self.dbcon_part
         tableinfo = dbconn.execute("SELECT * FROM __tableinfo__ WHERE TableName='{}'".format(tablename)).fetchall()
+        # If the info for this table is not in the database, add it
         if len(tableinfo) == 0:
-            self.dbcon_part.execute("INSERT INTO {name} VALUES{args}".format(name='__tableinfo__',
+            dbconn.execute("INSERT INTO {name} VALUES{args}".format(name='__tableinfo__',
                                                                     args=(tablename, type, description)))
 
     def get_table_info(self, field=None):
