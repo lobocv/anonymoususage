@@ -1,18 +1,18 @@
 __author__ = 'calvin'
 
-import os
-import datetime
-import time
-import sqlite3
-import logging
-import re
-import threading
 import ConfigParser
+import datetime
+import logging
+import os
+import re
+import sqlite3
+import threading
+import time
 
 from tables import Table, Statistic, State, Timer, Sequence
+from .api import upload_stats
 from .exceptions import IntervalError, TableConflictError
 from .tools import *
-from .api import upload_stats
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
 logger = logging.getLogger('AnonymousUsage')
@@ -221,8 +221,8 @@ class AnonymousUsageTracker(object):
                     create_table(self.dbcon_part, table.name, table.table_args)
                 return True
         except Exception as e:
-            self['__submissions__'].delete_last()
             logger.error(e)
+            self['__submissions__'].delete_last()
             self.stop_watcher()
             return False
 
