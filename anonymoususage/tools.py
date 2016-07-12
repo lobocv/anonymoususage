@@ -1,10 +1,9 @@
 __author__ = 'calvin'
 
-import ftplib
-import sqlite3
-import logging
 import datetime
-
+import ftplib
+import logging
+import sqlite3
 
 logger = logging.getLogger('AnonymousUsage')
 
@@ -151,10 +150,14 @@ def get_last_row(dbconn, tablename, n=1, uuid=None):
     :return: If n > 1, a list of rows. If n=1, a single row
     """
     cur = dbconn.cursor()
-    if uuid:
-        cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
-    else:
-        cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+    try:
+        if uuid:
+            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
+        else:
+            cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+    except sqlite3.OperationalError as e:
+        logger.error(e)
+        return []
     rows = cur.fetchall()
     return rows
 
