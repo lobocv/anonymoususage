@@ -1,16 +1,15 @@
 __author__ = 'calvin'
 
-import ftplib
-import sqlite3
-import logging
 import datetime
-
+import ftplib
+import logging
+import sqlite3
 
 logger = logging.getLogger('AnonymousUsage')
 
-__all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'login_ftp', 'get_rows',
+__all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
-           'get_number_of_rows', 'get_last_row', 'rename_table']
+           'get_number_of_rows', 'get_last_row', 'rename_table', 'database_to_json']
 
 
 def create_table(dbcon, name, columns):
@@ -151,10 +150,14 @@ def get_last_row(dbconn, tablename, n=1, uuid=None):
     :return: If n > 1, a list of rows. If n=1, a single row
     """
     cur = dbconn.cursor()
-    if uuid:
-        cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
-    else:
-        cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+    try:
+        if uuid:
+            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
+        else:
+            cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+    except sqlite3.OperationalError as e:
+        logger.error(e)
+        return []
     rows = cur.fetchall()
     return rows
 
@@ -175,7 +178,10 @@ def merge_databases(master, part):
         pcur.execute("SELECT * FROM %s" % table)
         rows = pcur.fetchall()
         if rows:
-            logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
+            try:
+                logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
+            except Exception as e:
+                logging.error(e)
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
 
@@ -220,7 +226,7 @@ def rename_table(dbconn, original, new):
     cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
 
 
-def login_ftp(host, user, passwd, path='', acct='', port=21, timeout=5):
+def login_hq(host, user, passwd, path='', acct='', port=21, timeout=5):
     """
     Create and return a logged in FTP object.
     :return:
@@ -243,3 +249,15 @@ def ftp_download(ftp, ftp_path, local_path):
     """
     with open(local_path, 'wb') as _f:
         ftp.retrbinary('RETR %s' % ftp_path, _f.write)
+
+
+def database_to_json(dbconn, tableinfo):
+    dbconn.row_factory = None
+    js = {}
+    for tablename, info in tableinfo.iteritems():
+        rows = get_last_row(dbconn, tablename)
+        if rows:
+            info['data'] = rows[0][2 if info['type'] == 'State' else 1]
+            js[tablename] = info
+    dbconn.row_factory = sqlite3.Row
+    return js

@@ -10,6 +10,7 @@ import threading
 import time
 
 from tables import Table, Statistic, State, Timer, Sequence
+from .api import upload_stats
 from .exceptions import IntervalError, TableConflictError
 from .tools import *
 
@@ -18,6 +19,9 @@ logger = logging.getLogger('AnonymousUsage')
 
 
 class AnonymousUsageTracker(object):
+    application_name = None
+    application_version = None
+
     def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
                  config='', debug=False):
         """
@@ -53,7 +57,7 @@ class AnonymousUsageTracker(object):
         if os.path.isfile(config):
             self.load_configuration(config)
         else:
-            self._ftp = {}
+            self._hq = {}
 
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.tracker_file_master = self.filename + '.db'
@@ -71,8 +75,8 @@ class AnonymousUsageTracker(object):
             self.dbcon = self.dbcon_master
 
         self.track_statistic('__submissions__')
-        if self._requires_submission() and self._ftp:
-            self.ftp_submit()
+        if self._requires_submission() and self._hq:
+            self.hq_submit()
 
         self.start_watcher()
 
@@ -94,40 +98,72 @@ class AnonymousUsageTracker(object):
         self.dbcon_master.commit()
         self.dbcon_master.close()
 
-    def setup_ftp(self, host, user, passwd, path='', acct='', port=21, timeout=5):
-        self._ftp = dict(host=host, user=user, passwd=passwd, acct=acct,
+    def setup_hq(self, host, user, passwd, path='', acct='', port=21, timeout=5):
+        self._hq = dict(host=host, user=user, passwd=passwd, acct=acct,
                          timeout=int(timeout), path=path, port=int(port))
 
-    def track_statistic(self, name):
+    def register_table(self, tablename, uuid, type, description):
+        exists_in_master = check_table_exists(self.dbcon_master, '__tableinfo__')
+        exists_in_partial = check_table_exists(self.dbcon_part, '__tableinfo__')
+        if not exists_in_master and not exists_in_partial:
+            # The table doesn't exist in master, create it in partial so it can be merged in on submit
+            create_table(self.dbcon_part, '__tableinfo__', [("TableName", "TEXT"), ("Type", "TEXT"), ("Description", "TEXT")])
+        # Check if info is already in the table
+        dbconn = self.dbcon_master if exists_in_master else self.dbcon_part
+        tableinfo = dbconn.execute("SELECT * FROM __tableinfo__ WHERE TableName='{}'".format(tablename)).fetchall()
+        # If the info for this table is not in the database, add it
+        if len(tableinfo) == 0:
+            dbconn.execute("INSERT INTO {name} VALUES{args}".format(name='__tableinfo__',
+                                                                    args=(tablename, type, description)))
+
+    def get_table_info(self, field=None):
+        rows = []
+        if check_table_exists(self.dbcon_master, '__tableinfo__'):
+            rows = get_rows(self.dbcon_master, '__tableinfo__')
+        elif check_table_exists(self.dbcon_part, '__tableinfo__'):
+            rows = get_rows(self.dbcon_part, '__tableinfo__')
+
+        if field:
+            idx = ('type', 'description').index(field.lower()) + 1
+            tableinfo = {r[0]: r[idx] for r in rows}
+        else:
+            tableinfo = {r[0]: {'type': r[1], 'description': r[2]} for r in rows}
+        return tableinfo
+
+    def track_statistic(self, name, description=''):
         """
         Create a Statistic object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        self.register_table(name, self.uuid, 'Statistic', description)
         self._tables[name] = Statistic(name, self)
 
-    def track_state(self, name, initial_state, **state_kw):
+    def track_state(self, name, initial_state, description='', **state_kw):
         """
         Create a State object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        self.register_table(name, self.uuid, 'State', description)
         self._tables[name] = State(name, self, initial_state, **state_kw)
 
-    def track_time(self, name):
+    def track_time(self, name, description=''):
         """
         Create a Timer object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        self.register_table(name, self.uuid, 'Timer', description)
         self._tables[name] = Timer(name, self)
 
-    def track_sequence(self, name, checkpoints):
+    def track_sequence(self, name, checkpoints, description=''):
         """
         Create a Sequence object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        self.register_table(name, self.uuid, 'Sequence', description)
         self._tables[name] = Sequence(name, self, checkpoints)
 
     def get_row_count(self):
@@ -147,27 +183,33 @@ class AnonymousUsageTracker(object):
                     info[table] = {'nrows': nrows}
         return info
 
-    def ftp_submit(self):
+    def hq_submit(self):
         """
         Upload the database to the FTP server. Only submit new information contained in the partial database.
         Merge the partial database back into master after a successful upload.
         """
+        if not self._hq.get('api_key', False):
+            return
+        for r in ('uuid', 'application_name', 'application_version'):
+            if not getattr(self, r, False):
+                return False
         self['__submissions__'] += 1
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            ftp = login_ftp(**self._ftp)
             with open(self.tracker_file_part, 'rb') as _f:
-                files = self.regex_db.findall(','.join(ftp.nlst()))
-                if files:
-                    regex_number = re.compile(r'_\d+')
-                    n = max(map(lambda x: int(x[1:]), regex_number.findall(','.join(files)))) + 1
-                else:
-                    n = 1
-                new_filename = self.uuid + '_Part%03d.db' % n
-                ftp.storbinary('STOR %s' % new_filename, _f)
-                logger.debug('Submission to %s successful.' % self._ftp['host'])
 
+                tableinfo = self.get_table_info()
+                payload = {'API Key': self._hq['api_key'],
+                           'User Identifier': self.uuid,
+                           'Application Name': self.application_name,
+                           'Application Version': self.application_version,
+                           'Data': database_to_json(self.dbcon_part, tableinfo)
+                           }
+
+                response = upload_stats(self._hq['server'], payload)
+                if response == 'Success':
+                    logger.debug('Submission to %s successful.' % self._hq['server'])
                 # Merge the local partial database into master
                 merge_databases(self.dbcon_master, self.dbcon_part)
 
@@ -191,8 +233,12 @@ class AnonymousUsageTracker(object):
         cfg = ConfigParser.ConfigParser()
         with open(config, 'r') as _f:
             cfg.readfp(_f)
-            if cfg.has_section('FTP'):
-                self.setup_ftp(**dict(cfg.items('FTP')))
+            if cfg.has_section('General'):
+                general = dict(cfg.items('General'))
+                self.application_name = general.get('application_name', None)
+                self.application_version = general.get('application_version', None)
+            if cfg.has_section('HQ'):
+                self._hq = dict(cfg.items('HQ'))
 
     def enable(self):
         logger.debug('Enabled.')
@@ -262,9 +308,9 @@ class AnonymousUsageTracker(object):
             time.sleep(self.check_interval.total_seconds())
             if not self._watcher_enabled:
                 break
-            if self._ftp and self._requires_submission():
+            if self._hq and self._requires_submission():
                 logger.debug('Attempting to upload usage statistics.')
-                self.ftp_submit()
+                self.hq_submit()
         logger.debug('Watcher stopped.')
         self._watcher = None
 
@@ -277,7 +323,7 @@ if __name__ == '__main__':
                                     tracker_file='/home/calvin/test/testtracker.db',
                                     check_interval=600,
                                     submit_interval=interval)
-    tracker.setup_ftp(host='ftp.sensoft.ca',
+    tracker.setup_hq(host='ftp.sensoft.ca',
                       user='LMX',
                       passwd='G8mu5YLC6CCKkwme',
                       path='./usage')
