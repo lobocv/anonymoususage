@@ -17,6 +17,9 @@ class Statistic(Table):
         tracker.track_statistic(stat_name)
         tracker[stat_name] += 1
     """
+    IPC_COMMANDS = {'GET': ('count',),
+                    'SET': ('count',),
+                    'ACT': ()}
 
     def __add__(self, i):
         dt = datetime.datetime.now().strftime(self.time_fmt)

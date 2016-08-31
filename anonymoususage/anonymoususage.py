@@ -5,9 +5,12 @@ import datetime
 import logging
 import os
 import re
+import json
 import sqlite3
 import threading
 import time
+import socket
+import collections
 
 from tables import Table, Statistic, State, Timer, Sequence
 from .api import upload_stats
@@ -313,6 +316,78 @@ class AnonymousUsageTracker(object):
                 self.hq_submit()
         logger.debug('Watcher stopped.')
         self._watcher = None
+
+
+    #############################################################
+    #               Interprocess Communication                  #
+    #############################################################
+
+    def open_socket(self, host, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        return s
+
+    def monitor_socket(self, socket):
+        s = socket
+        s.setblocking(1)
+        s.listen(1)
+        conn, addr = s.accept()
+        while 1:
+            error_msg = ''
+            response = ''
+            action = ''
+            packet = conn.recv(1024)
+            if packet == '':
+                break
+            struct = json.loads(packet)
+
+            cmd = struct.get('command')
+            if cmd == 'GET':
+                table = self[struct.get('trackable')]
+                attr = struct.get('field').lower()
+                if table and attr:
+                    if attr in table.IPC_COMMANDS['GET']:
+                        value = getattr(table, attr)
+                    else:
+                        error_msg = 'GET command is not available for %s' % attr
+
+                    # Convert the response to string representation
+                    if isinstance(value, basestring):
+                        response = value
+                    elif isinstance(value, collections.Iterable):
+                        response = ','.join(map(str, value))
+                    else:
+                        response = str(value)
+            elif cmd == 'SET':
+                table = self[struct.get('trackable')]
+                attr = struct.get('field').lower()
+                value = struct.get('value')
+                if table and attr:
+                    if attr in table.IPC_COMMANDS['SET']:
+                        try:
+                            setattr(table, attr, value)
+                            response = '{} set to {}'.format(attr, value)
+                        except Exception as e:
+                            error_msg = e.message
+
+                    else:
+                        error_msg = 'SET command is not available for %s' % attr
+            elif cmd == 'ACT':
+                table = self[struct.get('trackable')]
+                action = struct.get('action')
+                args = struct.get('args', [])
+                if table and action:
+                    if action in table.IPC_COMMANDS['ACT']:
+                        try:
+                            getattr(table, action)(*args)
+                            response = 'Call to %s has been processed' % action
+                        except Exception as e:
+                            error_msg = e.message
+
+                # If there was an error, send back the error message, otherwise the response
+            conn.send(error_msg or response)
+
+            print packet
 
 
 if __name__ == '__main__':

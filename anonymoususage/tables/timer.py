@@ -16,9 +16,14 @@ class Timer(Statistic):
     started and stopped in order to record the time it takes for certain tasks to be completed.
 
     """
+    IPC_COMMANDS = {'GET': ('count', 'total_days', 'total_hours', 'total_minutes', 'total_seconds'),
+                    'SET': (),
+                    'ACT': ('start_timer', 'pause_timer', 'resume_timer', 'stop_timer')}
+
     def __init__(self, name, tracker):
         super(Timer, self).__init__(name, tracker)
         self._start_time = None
+        self.paused = False
         self._delta_seconds = 0
 
     def start_timer(self):
@@ -29,17 +34,25 @@ class Timer(Statistic):
     def pause_timer(self):
         timedelta = datetime.datetime.now() - self._start_time
         self._delta_seconds += timedelta.total_seconds()
+        self.paused = True
         logger.debug('AnonymousUsage: Pausing %s timer' % self.name)
+
+    def resume_timer(self):
+        self.paused = False
+        self._start_time = datetime.datetime.now()
+        logger.debug('AnonymousUsage: Resuming %s timer' % self.name)
 
     def stop_timer(self):
         if self._start_time is None:
             logger.debug('AnonymousUsage: Cannot stop timer that has not been started.')
             return
-        timedelta = datetime.datetime.now() - self._start_time
-        self._delta_seconds += timedelta.total_seconds()
+        if not self.paused:
+            timedelta = datetime.datetime.now() - self._start_time
+            self._delta_seconds += timedelta.total_seconds()
         self += self._delta_seconds
         self._delta_seconds = 0
         self._start_time = None
+        self.paused = False
         logger.debug('AnonymousUsage: Stopping %s timer' % self.name)
 
     @property

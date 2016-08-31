@@ -22,6 +22,9 @@ class State(Table):
         tracker[state_name] = 'OFF'
     """
     table_args = ("UUID", "INT"), ("Count", "INT"), ("State", "TEXT"), ("Time", "TEXT")
+    IPC_COMMANDS = {'GET': ('count', 'state'),
+                    'SET': ('count', 'state'),
+                    'ACT': ()}
 
     def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False):
         super(State, self).__init__(name, tracker)

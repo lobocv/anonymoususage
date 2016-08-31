@@ -24,6 +24,9 @@ class Sequence(Table):
         tracker[stat_name] = 'third'    # Third check point reached. At this point the database is updated.
 
     """
+    IPC_COMMANDS = {'GET': ('count', 'sequence', 'checkpoint'),
+                    'SET': ('count', 'checkpoint'),
+                    'ACT': ('get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint')}
 
     def __init__(self, name, tracker, checkpoints):
         super(Sequence, self).__init__(name, tracker)
@@ -50,6 +53,17 @@ class Sequence(Table):
                     logging.debug("Sequence {s.name} complete, count set to {s.count}".format(s=self))
         else:
             raise InvalidCheckpointError(checkpoint)
+
+    @property
+    def checkpoint(self):
+        try:
+            return self.sequence[-1]
+        except IndexError:
+            return None
+
+    @checkpoint.setter
+    def checkpoint(self, checkpoint):
+        self.insert(checkpoint)
 
     def get_checkpoints(self):
         """
