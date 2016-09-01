@@ -38,13 +38,14 @@ class Table(object):
         rows = []
         if check_table_exists(self.tracker.dbcon_master, self.name):
             rows.extend(get_rows(self.tracker.dbcon_master, self.name))
-        if check_table_exists(self.tracker.dbcon_part, self.name):
+        if self.tracker.dbcon_part and check_table_exists(self.tracker.dbcon_part, self.name):
             rows.extend(get_rows(self.tracker.dbcon_part, self.name))
         return rows
 
     def get_number_of_rows(self):
-        n_rows = get_number_of_rows(self.tracker.dbcon_part, self.name)
-        n_rows += get_number_of_rows(self.tracker.dbcon_master, self.name)
+        n_rows = get_number_of_rows(self.tracker.dbcon_master, self.name)
+        if self.tracker.dbcon_part:
+            n_rows += get_number_of_rows(self.tracker.dbcon_part, self.name)
         return n_rows
 
     def insert(self, value):
@@ -63,7 +64,7 @@ class Table(object):
         """
         rows = []
         # Get values from the partial db first
-        if check_table_exists(self.tracker.dbcon_part, self.name):
+        if self.tracker.dbcon_part and check_table_exists(self.tracker.dbcon_part, self.name):
             rows.extend(get_last_row(self.tracker.dbcon_part, self.name, n))
         # Then add rows from the master if required
         if len(rows) < n and check_table_exists(self.tracker.dbcon_master, self.name):
@@ -74,7 +75,8 @@ class Table(object):
         last = self.get_last()
         if last:
             last = last[0]
-            delete_row(self.tracker.dbcon_part, self.name, "Count", last['Count'])
+            db = self.tracker.dbcon_part if self.tracker.dbcon_part else self.tracker.dbcon_master
+            delete_row(db, self.name, "Count", last['Count'])
             self.count -= 1
 
     def get_count(self):

@@ -5,15 +5,14 @@ logging.getLogger().setLevel(logging.DEBUG)
 from anonymoususage import AnonymousUsageTracker, NO_STATE
 
 unique_identifier = uuid.uuid4().hex
-database_path = 'data/usage.db'
+database_path = './test.db'
 submit_interval = datetime.timedelta(hours=1)
 
 tracker = AnonymousUsageTracker(uuid=unique_identifier,
-                                tracker_file=database_path,
-                                config='./anonymoususage.cfg',
-                                check_interval=datetime.timedelta(seconds=30),
-                                submit_interval=submit_interval)
-
+                                filepath=database_path,
+                                check_interval_s=30,
+                                submit_interval_s=60*60)
+tracker.setup_hq(host='http://127.0.0.1:5010', api_key='1fd5451sdr83523ks234')
 tracker.track_statistic('quests_complete')
 tracker.track_statistic('monsters_killed')
 tracker.track_sequence('round_trip', checkpoints=('The Shire', 'Mordor', 'Gondor'))

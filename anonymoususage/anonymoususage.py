@@ -22,66 +22,59 @@ logger = logging.getLogger('AnonymousUsage')
 
 
 class AnonymousUsageTracker(object):
-    application_name = None
-    application_version = None
 
-    def __init__(self, uuid, tracker_file, submit_interval=None, check_interval=CHECK_INTERVAL,
-                 config='', debug=False):
+    def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0,
+                 application_name='', application_version='', debug=False):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
         :param uuid: unique identifier
-        :param tracker_file: path to store the database
-        :param config: path to store the configuration file.
-        :param check_interval: datetime.timedelta object specifying how often the tracker should check to see if an
-                               upload is required
-        :param submit_interval: datetime.timedelta object for the interval in which usage statistics should be uploaded
+        :param filepath: path to store the database
+        :param application_name: Name of the application as a string
+        :param application_version: Application version as a string
+        :param check_interval_s: How often the tracker should check to see if an upload is required (seconds)
+        :param submit_interval_s: How often the usage statistics should be uploaded (seconds)
         """
 
         if debug:
             logger.setLevel(logging.DEBUG)
 
-        if not isinstance(submit_interval, datetime.timedelta):
-            raise IntervalError(submit_interval)
-        if not isinstance(check_interval, datetime.timedelta):
-            raise IntervalError(check_interval)
-
         self.uuid = str(uuid)
-        self.filename = os.path.splitext(tracker_file)[0]
-        self.tracker_file = self.filename + '.db'
-        self.submit_interval = submit_interval
-        self.check_interval = check_interval
+        self.filename = os.path.splitext(filepath)[0]
+        self.filepath = self.filename + '.db'
+        self.submit_interval_s = submit_interval_s
+        self.check_interval_s = check_interval_s
+        self.application_name = application_name
+        self.application_version = application_version
 
         self.regex_db = re.compile(r'%s_\d+.db' % self.uuid)
         self._tables = {}
+        self._hq = {}
         self._watcher = None
         self._watcher_enabled = False
 
-        # Load the configuration from a file if specified
-        if os.path.isfile(config):
-            self.load_configuration(config)
-        else:
-            self._hq = {}
-
         # Create the data base connections to the master database and partial database (if submit_interval)
-        self.tracker_file_master = self.filename + '.db'
-        self.dbcon_master = sqlite3.connect(self.tracker_file_master, check_same_thread=False)
+        self.dbcon_master = sqlite3.connect(self.filepath, check_same_thread=False)
         self.dbcon_master.row_factory = sqlite3.Row
-        if submit_interval:
-            # Create a partial database that contains only the table entries since the last submit
-            self.tracker_file_part = self.filename + '.part.db'
-            self.dbcon_part = sqlite3.connect(self.tracker_file_part, check_same_thread=False)
+
+        # If a submit interval is given, create a partial database that contains only the table entries since
+        # the last submission. Merge this partial database into the master after a submission.
+        # If no submit interval is given, just use a single (master) database.
+        if submit_interval_s:
+            self.filepath_part = self.filename + '.part.db'
+            self.dbcon_part = sqlite3.connect(self.filepath_part, check_same_thread=False)
             self.dbcon_part.row_factory = sqlite3.Row
-            # Use the partial database to append stats
             self.dbcon = self.dbcon_part
         else:
-            # Use the master database to append stats
+            self.dbcon_part = None
+            self.filepath_part = None
             self.dbcon = self.dbcon_master
 
-        self.track_statistic('__submissions__')
-        if self._requires_submission() and self._hq:
+        self.track_statistic('__submissions__', description='The number of statistic submissions to the server.')
+        if self._hq and self._requires_submission():
             self.hq_submit()
 
-        self.start_watcher()
+        if check_interval_s and submit_interval_s:
+            self.start_watcher()
 
     def __getitem__(self, item):
         """
@@ -101,16 +94,22 @@ class AnonymousUsageTracker(object):
         self.dbcon_master.commit()
         self.dbcon_master.close()
 
-    def setup_hq(self, host, user, passwd, path='', acct='', port=21, timeout=5):
-        self._hq = dict(host=host, user=user, passwd=passwd, acct=acct,
-                         timeout=int(timeout), path=path, port=int(port))
+    def setup_hq(self, host, api_key):
+        self._hq = dict(host=host, api_key=api_key)
 
     def register_table(self, tablename, uuid, type, description):
         exists_in_master = check_table_exists(self.dbcon_master, '__tableinfo__')
-        exists_in_partial = check_table_exists(self.dbcon_part, '__tableinfo__')
+        exists_in_partial = self.dbcon_part and check_table_exists(self.dbcon_part, '__tableinfo__')
         if not exists_in_master and not exists_in_partial:
             # The table doesn't exist in master, create it in partial so it can be merged in on submit
-            create_table(self.dbcon_part, '__tableinfo__', [("TableName", "TEXT"), ("Type", "TEXT"), ("Description", "TEXT")])
+            # (if partial exists) otherwise, create it in the master
+            if self.dbcon_part:
+                db = self.dbcon_part
+            else:
+                db = self.dbcon_master
+                exists_in_master = True
+            create_table(db, '__tableinfo__', [("TableName", "TEXT"), ("Type", "TEXT"), ("Description", "TEXT")])
+
         # Check if info is already in the table
         dbconn = self.dbcon_master if exists_in_master else self.dbcon_part
         tableinfo = dbconn.execute("SELECT * FROM __tableinfo__ WHERE TableName='{}'".format(tablename)).fetchall()
@@ -197,31 +196,40 @@ class AnonymousUsageTracker(object):
             if not getattr(self, r, False):
                 return False
         self['__submissions__'] += 1
+        if self.dbcon_part:
+            db = self.dbcon_part
+            db_file = self.filepath_part
+        else:
+            db = self.dbcon_master
+            db_file = self.filepath
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            with open(self.tracker_file_part, 'rb') as _f:
+            with open(db_file, 'rb') as _f:
 
                 tableinfo = self.get_table_info()
                 payload = {'API Key': self._hq['api_key'],
                            'User Identifier': self.uuid,
                            'Application Name': self.application_name,
                            'Application Version': self.application_version,
-                           'Data': database_to_json(self.dbcon_part, tableinfo)
+                           'Data': database_to_json(db, tableinfo)
                            }
 
                 response = upload_stats(self._hq['server'], payload)
                 if response == 'Success':
                     logger.debug('Submission to %s successful.' % self._hq['server'])
-                # Merge the local partial database into master
-                merge_databases(self.dbcon_master, self.dbcon_part)
 
-                # Remove the partial file and create a new one
-                os.remove(self.tracker_file_part)
-                self.dbcon = self.dbcon_part = sqlite3.connect(self.tracker_file_part, check_same_thread=False)
-                self.dbcon_part.row_factory = sqlite3.Row
-                for table in self._tables.itervalues():
-                    create_table(self.dbcon_part, table.name, table.table_args)
+                # If we have a partial database, merge it into the local master and create a new partial
+                if self.dbcon_part:
+                    merge_databases(self.dbcon_master, self.dbcon_part)
+
+                    # Remove the partial file and create a new one
+                    os.remove(self.filepath_part)
+                    self.dbcon = self.dbcon_part = sqlite3.connect(self.filepath_part, check_same_thread=False)
+                    self.dbcon_part.row_factory = sqlite3.Row
+                    for table in self._tables.itervalues():
+                        create_table(self.dbcon_part, table.name, table.table_args)
+
                 return True
         except Exception as e:
             logger.error(e)
@@ -229,19 +237,35 @@ class AnonymousUsageTracker(object):
             self.stop_watcher()
             return False
 
-    def load_configuration(self, config):
+    @classmethod
+    def load_from_configuration(cls, path, uuid, **kwargs):
         """
         Load FTP server credentials from a configuration file.
         """
         cfg = ConfigParser.ConfigParser()
-        with open(config, 'r') as _f:
+        kw = {}
+        with open(path, 'r') as _f:
             cfg.readfp(_f)
             if cfg.has_section('General'):
                 general = dict(cfg.items('General'))
-                self.application_name = general.get('application_name', None)
-                self.application_version = general.get('application_version', None)
+                kw['filepath'] = general['filepath']
+                kw['application_name'] = general.get('application_name', '')
+                kw['application_version'] = general.get('application_version', '')
+                kw['submit_interval_s'] = int(general.get('submit_interval_s', 0))
+                kw['check_interval_s'] = int(general.get('check_interval_s', 0))
+                kw['debug'] = bool(general.get('debug', False))
+
             if cfg.has_section('HQ'):
-                self._hq = dict(cfg.items('HQ'))
+                hq_params = dict(cfg.items('HQ'))
+            else:
+                hq_params = None
+
+        kw.update(**kwargs)
+        tracker = cls(uuid, **kw)
+        if hq_params:
+            tracker.setup_hq(**hq_params)
+
+        return tracker
 
     def enable(self):
         logger.debug('Enabled.')
@@ -278,6 +302,9 @@ class AnonymousUsageTracker(object):
         If no submissions have ever been made, check if the database last modified time is greater than the
         submission interval.
         """
+        if self.dbcon_part is None:
+            return False
+
         tables = get_table_list(self.dbcon_part)
         nrows = 0
         for table in tables:
@@ -296,9 +323,9 @@ class AnonymousUsageTracker(object):
             logger.debug('Last submission was %s' % last_submission[0]['Time'])
             t_ref = datetime.datetime.strptime(last_submission[0]['Time'], Table.time_fmt)
         else:
-            t_ref = datetime.datetime.fromtimestamp(os.path.getmtime(self.tracker_file_master))
+            t_ref = datetime.datetime.fromtimestamp(os.path.getmtime(self.filepath))
 
-        submission_interval_passed = (t0 - t_ref).total_seconds() > self.submit_interval.total_seconds()
+        submission_interval_passed = (t0 - t_ref).total_seconds() > self.submit_interval_s
         submission_required = bool(submission_interval_passed and nrows)
         if submission_required:
             logger.debug('A submission is overdue.')
@@ -308,7 +335,7 @@ class AnonymousUsageTracker(object):
 
     def _watcher_thread(self):
         while 1:
-            time.sleep(self.check_interval.total_seconds())
+            time.sleep(self.check_interval_s)
             if not self._watcher_enabled:
                 break
             if self._hq and self._requires_submission():
@@ -395,9 +422,9 @@ if __name__ == '__main__':
     interval = datetime.timedelta(seconds=2)
     # interval = None
     tracker = AnonymousUsageTracker(uuid='123',
-                                    tracker_file='/home/calvin/test/testtracker.db',
-                                    check_interval=600,
-                                    submit_interval=interval)
+                                    filepath='/home/calvin/test/testtracker.db',
+                                    check_interval_s=600,
+                                    submit_interval_s=interval)
     tracker.setup_hq(host='ftp.sensoft.ca',
                       user='LMX',
                       passwd='G8mu5YLC6CCKkwme',

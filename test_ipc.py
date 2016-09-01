@@ -13,11 +13,8 @@ HOST = ''
 PORT = 1214
 if mode == '0':
 
-    usage_tracker = AnonymousUsageTracker(config='./anonymoususage.cfg',
-                                       uuid="ASDFGH",
-                                       tracker_file='./test.db',
-                                       submit_interval=datetime.timedelta(days=1),
-                                       check_interval=datetime.timedelta(minutes=2))
+    usage_tracker = AnonymousUsageTracker(uuid="ASDFGH",
+                                          filepath='./test.db')
     usage_tracker.track_statistic('grids')
     usage_tracker.track_statistic('lines')
     usage_tracker.track_time('run_time')
