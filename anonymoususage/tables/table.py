@@ -88,3 +88,14 @@ class Table(object):
             return row[0]['Count']
         else:
             return 0
+
+    @classmethod
+    def api_help(cls):
+        return "{cls}\n" \
+               "---------\n" \
+               "GET : {get}\n" \
+               "SET : {set}\n" \
+               "ACT : {act}\n".format(cls=cls.__name__,
+                                       get=','.join(cls.IPC_COMMANDS['GET']),
+                                       set=','.join(cls.IPC_COMMANDS['SET']),
+                                       act=','.join(cls.IPC_COMMANDS['ACT']))

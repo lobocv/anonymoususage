@@ -1,4 +1,5 @@
 from anonymoususage import AnonymousUsageTracker
+from anonymoususage.tables import TRACKABLES
 from anonymoususage.api import COMMANDS
 import sys
 
@@ -19,14 +20,22 @@ __help__ = \
     standalone 'USER100049' localhost 1213 ./my_statistics.db
 
     ============================================================================
-    =                                      API                                 =
+    =                                  API                                     =
     ============================================================================
     {API}
 
-    '''.format(API='\n'.join(c.__doc__ for c in COMMANDS))
+    ============================================================================
+    =                             TRACKABLE API                                =
+    ============================================================================
+
+    {TRACKABLES}
+    '''.format(API='\n'.join(c.__doc__ for c in COMMANDS),
+               TRACKABLES='\n'.join(t.api_help() for t in TRACKABLES))
+
+
 
 try:
-    UUID, HOST, PORT, FILEPATH = sys.argv[1:]
+    UUID, HOST, PORT,  = sys.argv[1:]
 except Exception as e:
     print __help__
     sys.exit(-1)

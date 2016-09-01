@@ -10,6 +10,7 @@ import sqlite3
 import threading
 import time
 import socket
+import requests
 
 from tables import Table, Statistic, State, Timer, Sequence
 import api
@@ -21,6 +22,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 
 class AnonymousUsageTracker(object):
+    HQ_DEFAULT_TIMEOUT = 10
 
     IPC_COMMANDS = {'GET': (),
                     'SET': (),
@@ -219,7 +221,14 @@ class AnonymousUsageTracker(object):
                            'Data': database_to_json(db, tableinfo)
                            }
 
-                response = upload_stats(self._hq['server'], payload)
+                try:
+                    response = requests.post(self._hq['server'] + '/usagestats/upload',
+                                             data=json.dumps(payload),
+                                             timeout=self.HQ_DEFAULT_TIMEOUT)
+                except Exception as e:
+                    logging.error(e)
+                    response = False
+
                 if response == 'Success':
                     logger.debug('Submission to %s successful.' % self._hq['server'])
 
