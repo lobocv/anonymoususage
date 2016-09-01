@@ -10,11 +10,10 @@ import sqlite3
 import threading
 import time
 import socket
-import collections
 
 from tables import Table, Statistic, State, Timer, Sequence
-from .api import upload_stats
-from .exceptions import IntervalError, TableConflictError
+import api
+from .exceptions import TableConflictError
 from .tools import *
 
 CHECK_INTERVAL = datetime.timedelta(minutes=30)
@@ -359,34 +358,6 @@ class AnonymousUsageTracker(object):
         s.bind((host, port))
         return s
 
-    def _get(self, obj, attr):
-        if attr in obj.IPC_COMMANDS['GET']:
-            value = getattr(obj, attr)
-        else:
-            raise ValueError('GET command is not available for %s' % attr)
-
-        # Convert the response to string representation
-        if isinstance(value, basestring):
-            response = value
-        elif isinstance(value, collections.Iterable):
-            response = ','.join(map(str, value))
-        else:
-            response = str(value)
-
-        return response
-
-    def _set(self, obj, attr, value):
-        if attr in obj.IPC_COMMANDS['SET']:
-            setattr(obj, attr, value)
-            return '{} set to {}'.format(attr, value)
-        else:
-            raise ValueError('SET command is not available for %s' % attr)
-
-    def _act(self, obj, action, *args):
-        if action in obj.IPC_COMMANDS['ACT']:
-            response = getattr(obj, action)(*args)
-            return response or 'Call to %s has been processed' % action
-
     def monitor_socket(self, socket):
         s = socket
         s.setblocking(1)
@@ -408,18 +379,18 @@ class AnonymousUsageTracker(object):
 
             cmd = struct.get('command')
             if cmd == 'GET':
-                attr = struct.get('field').lower()
+                attr = struct.get('attribute').lower()
                 if obj and attr:
                     try:
-                        response = self._get(obj, attr)
+                        response = api.get_(obj, attr)
                     except Exception as e:
                         error_msg = e.message
             elif cmd == 'SET':
-                attr = struct.get('field').lower()
+                attr = struct.get('attribute').lower()
                 value = struct.get('value')
                 if obj and attr:
                     try:
-                        response = self._set(obj, attr, value)
+                        response = api.set_(obj, attr, value)
                     except Exception as e:
                         error_msg = e.message
             elif cmd == 'ACT':
@@ -427,7 +398,7 @@ class AnonymousUsageTracker(object):
                 args = struct.get('args', [])
                 if obj and action:
                     try:
-                        response = self._act(obj, action, *args)
+                        response = api.act_(obj, action, *args)
                         if not isinstance(response, basestring):
                             response = json.dumps(response)
                     except Exception as e:

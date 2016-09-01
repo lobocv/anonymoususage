@@ -1,4 +1,5 @@
 from anonymoususage import AnonymousUsageTracker
+from anonymoususage.api import COMMANDS
 import sys
 
 __help__ = \
@@ -17,7 +18,12 @@ __help__ = \
 
     standalone 'USER100049' localhost 1213 ./my_statistics.db
 
-    '''
+    ============================================================================
+    =                                      API                                 =
+    ============================================================================
+    {API}
+
+    '''.format(API='\n'.join(c.__doc__ for c in COMMANDS))
 
 try:
     UUID, HOST, PORT, FILEPATH = sys.argv[1:]
