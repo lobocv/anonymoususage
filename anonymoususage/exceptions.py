@@ -7,6 +7,10 @@ class AnonymousUsageError(Exception):
     """
     pass
 
+    @property
+    def message(self):
+        return str(self)
+
 
 class IntervalError(AnonymousUsageError):
 
