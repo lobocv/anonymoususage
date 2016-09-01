@@ -7,7 +7,7 @@ from anonymoususage import __version__
 
 setup(
     name='anonymoususage',
-    packages=['anonymoususage', 'anonymoususage.tables', 'anonymoususage.analysis'],  # this must be the same as the name above
+    packages=['anonymoususage', 'anonymoususage.tables'],  # this must be the same as the name above
     version=__version__,
     description='Anonymously track user usage patterns and statistics.',
     author='Calvin Lobo',
