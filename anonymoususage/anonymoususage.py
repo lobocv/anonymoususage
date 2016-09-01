@@ -23,6 +23,11 @@ logger = logging.getLogger('AnonymousUsage')
 
 class AnonymousUsageTracker(object):
 
+    IPC_COMMANDS = {'GET': (),
+                    'SET': (),
+                    'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'hq_submit',
+                            'get_table_info')}
+
     def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0,
                  application_name='', application_version='', debug=False):
         """
@@ -116,7 +121,7 @@ class AnonymousUsageTracker(object):
         # If the info for this table is not in the database, add it
         if len(tableinfo) == 0:
             dbconn.execute("INSERT INTO {name} VALUES{args}".format(name='__tableinfo__',
-                                                                    args=(tablename, type, description)))
+                                                                    args=(str(tablename), type, description)))
 
     def get_table_info(self, field=None):
         rows = []
@@ -354,6 +359,34 @@ class AnonymousUsageTracker(object):
         s.bind((host, port))
         return s
 
+    def _get(self, obj, attr):
+        if attr in obj.IPC_COMMANDS['GET']:
+            value = getattr(obj, attr)
+        else:
+            raise ValueError('GET command is not available for %s' % attr)
+
+        # Convert the response to string representation
+        if isinstance(value, basestring):
+            response = value
+        elif isinstance(value, collections.Iterable):
+            response = ','.join(map(str, value))
+        else:
+            response = str(value)
+
+        return response
+
+    def _set(self, obj, attr, value):
+        if attr in obj.IPC_COMMANDS['SET']:
+            setattr(obj, attr, value)
+            return '{} set to {}'.format(attr, value)
+        else:
+            raise ValueError('SET command is not available for %s' % attr)
+
+    def _act(self, obj, action, *args):
+        if action in obj.IPC_COMMANDS['ACT']:
+            response = getattr(obj, action)(*args)
+            return response or 'Call to %s has been processed' % action
+
     def monitor_socket(self, socket):
         s = socket
         s.setblocking(1)
@@ -368,52 +401,40 @@ class AnonymousUsageTracker(object):
                 break
             struct = json.loads(packet)
 
+            if struct.get('trackable') == '':
+                obj = self
+            else:
+                obj = self[struct.get('trackable')]
+
             cmd = struct.get('command')
             if cmd == 'GET':
-                table = self[struct.get('trackable')]
                 attr = struct.get('field').lower()
-                if table and attr:
-                    if attr in table.IPC_COMMANDS['GET']:
-                        value = getattr(table, attr)
-                    else:
-                        error_msg = 'GET command is not available for %s' % attr
-
-                    # Convert the response to string representation
-                    if isinstance(value, basestring):
-                        response = value
-                    elif isinstance(value, collections.Iterable):
-                        response = ','.join(map(str, value))
-                    else:
-                        response = str(value)
+                if obj and attr:
+                    try:
+                        response = self._get(obj, attr)
+                    except Exception as e:
+                        error_msg = e.message
             elif cmd == 'SET':
-                table = self[struct.get('trackable')]
                 attr = struct.get('field').lower()
                 value = struct.get('value')
-                if table and attr:
-                    if attr in table.IPC_COMMANDS['SET']:
-                        try:
-                            setattr(table, attr, value)
-                            response = '{} set to {}'.format(attr, value)
-                        except Exception as e:
-                            error_msg = e.message
-
-                    else:
-                        error_msg = 'SET command is not available for %s' % attr
+                if obj and attr:
+                    try:
+                        response = self._set(obj, attr, value)
+                    except Exception as e:
+                        error_msg = e.message
             elif cmd == 'ACT':
-                table = self[struct.get('trackable')]
                 action = struct.get('action')
                 args = struct.get('args', [])
-                if table and action:
-                    if action in table.IPC_COMMANDS['ACT']:
-                        try:
-                            getattr(table, action)(*args)
-                            response = 'Call to %s has been processed' % action
-                        except Exception as e:
-                            error_msg = e.message
+                if obj and action:
+                    try:
+                        response = self._act(obj, action, *args)
+                        if not isinstance(response, basestring):
+                            response = json.dumps(response)
+                    except Exception as e:
+                        error_msg = e.message
 
-                # If there was an error, send back the error message, otherwise the response
+            # If there was an error, send back the error message, otherwise the response
             conn.send(error_msg or response)
-
             print packet
 
 

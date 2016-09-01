@@ -11,6 +11,9 @@ logger = logging.getLogger('AnonymousUsage')
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
     table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
+    IPC_COMMANDS = {'GET': ('count',),
+                    'SET': (),
+                    'ACT': ()}
 
     def __init__(self, name, tracker):
         if ' ' in name:
