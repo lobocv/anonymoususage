@@ -35,7 +35,7 @@ __help__ = \
 
 
 try:
-    UUID, HOST, PORT,  = sys.argv[1:]
+    UUID, HOST, PORT, FILEPATH = sys.argv[1:]
 except Exception as e:
     print __help__
     sys.exit(-1)
