@@ -261,7 +261,7 @@ class AnonymousUsageTracker(object):
             cfg.readfp(_f)
             if cfg.has_section('General'):
                 general = dict(cfg.items('General'))
-                kw['filepath'] = general['filepath']
+                kw['filepath'] = kwargs.get('filepath', False) or general['filepath']
                 kw['application_name'] = general.get('application_name', '')
                 kw['application_version'] = general.get('application_version', '')
                 kw['submit_interval_s'] = int(general.get('submit_interval_s', 0))
