@@ -26,7 +26,7 @@ class AnonymousUsageTracker(object):
 
     IPC_COMMANDS = {'GET': (),
                     'SET': (),
-                    'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'hq_submit',
+                    'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'submit_statistics',
                             'get_table_info')}
 
     def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0,
@@ -77,7 +77,7 @@ class AnonymousUsageTracker(object):
 
         self.track_statistic('__submissions__', description='The number of statistic submissions to the server.')
         if self._hq and self._requires_submission():
-            self.hq_submit()
+            self.submit_statistics()
 
         if check_interval_s and submit_interval_s:
             self.start_watcher()
@@ -191,7 +191,7 @@ class AnonymousUsageTracker(object):
                     info[table] = {'nrows': nrows}
         return info
 
-    def hq_submit(self):
+    def submit_statistics(self):
         """
         Upload the database to the FTP server. Only submit new information contained in the partial database.
         Merge the partial database back into master after a successful upload.
@@ -353,7 +353,7 @@ class AnonymousUsageTracker(object):
                 break
             if self._hq and self._requires_submission():
                 logger.debug('Attempting to upload usage statistics.')
-                self.hq_submit()
+                self.submit_statistics()
         logger.debug('Watcher stopped.')
         self._watcher = None
 
