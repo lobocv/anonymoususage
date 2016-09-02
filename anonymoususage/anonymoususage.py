@@ -229,7 +229,7 @@ class AnonymousUsageTracker(object):
                     logging.error(e)
                     response = False
 
-                if response == 'Success':
+                if response and response.status_code == 200:
                     logger.debug('Submission to %s successful.' % self._hq['host'])
 
                 # If we have a partial database, merge it into the local master and create a new partial
