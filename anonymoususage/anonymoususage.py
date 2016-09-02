@@ -12,7 +12,7 @@ import time
 import socket
 import requests
 
-from tables import Table, Statistic, State, Timer, Sequence
+from tables import Table, Statistic, State, Timer, Sequence, NO_STATE
 import api
 from .exceptions import TableConflictError
 from .tools import *
@@ -220,6 +220,18 @@ class AnonymousUsageTracker(object):
                            'Application Version': self.application_version,
                            'Data': database_to_json(db, tableinfo)
                            }
+
+                # For tables with data that has not yet been writen to the database (ie inital values),
+                # add them manually to the payload
+                for name, info in tableinfo.iteritems():
+                    if name not in payload['Data']:
+                        table = self[name]
+                        if isinstance(table, State):
+                            data = 'No State' if table.state == NO_STATE else table.state
+                        else:
+                            data = table.count
+                        tableinfo[name]['data'] = data
+                        payload['Data'][name] = tableinfo[name]
 
                 try:
                     response = requests.post(self._hq['host'] + '/usagestats/upload',
