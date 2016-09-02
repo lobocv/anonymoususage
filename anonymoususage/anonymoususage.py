@@ -222,7 +222,7 @@ class AnonymousUsageTracker(object):
                            }
 
                 try:
-                    response = requests.post(self._hq['server'] + '/usagestats/upload',
+                    response = requests.post(self._hq['host'] + '/usagestats/upload',
                                              data=json.dumps(payload),
                                              timeout=self.HQ_DEFAULT_TIMEOUT)
                 except Exception as e:
@@ -230,7 +230,7 @@ class AnonymousUsageTracker(object):
                     response = False
 
                 if response == 'Success':
-                    logger.debug('Submission to %s successful.' % self._hq['server'])
+                    logger.debug('Submission to %s successful.' % self._hq['host'])
 
                 # If we have a partial database, merge it into the local master and create a new partial
                 if self.dbcon_part:
