@@ -14,6 +14,8 @@ tracker = AnonymousUsageTracker(uuid=unique_identifier,
                                 submit_interval_s=60*60)
 tracker.setup_hq(host='http://127.0.0.1:5010', api_key='1fd5451sdr83523ks234')
 tracker.track_statistic('quests_complete')
+tracker['quests_complete'].increment(1)
+tracker['quests_complete'].decrement(1)
 tracker.track_statistic('monsters_killed')
 tracker.track_sequence('round_trip', checkpoints=('The Shire', 'Mordor', 'Gondor'))
 tracker.track_state('server', initial_state=NO_STATE)

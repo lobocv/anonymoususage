@@ -31,6 +31,10 @@ cmds = [# Statistic
         {'command': 'GET', 'trackable': 'grids', 'attribute': 'count'},
         {'command': 'SET', 'trackable': 'grids', 'attribute': 'count', 'value': 50},
         {'command': 'GET', 'trackable': 'grids', 'attribute': 'count'},
+        {'command': 'ACT', 'trackable': 'grids', 'action': 'increment', 'args': (1,)},
+        {'command': 'GET', 'trackable': 'grids', 'attribute': 'count'},
+        {'command': 'ACT', 'trackable': 'grids', 'action': 'decrement', 'args': (1,)},
+        {'command': 'GET', 'trackable': 'grids', 'attribute': 'count'},
 
     # State
         {'command': 'GET', 'trackable': 'units', 'attribute': 'state'},

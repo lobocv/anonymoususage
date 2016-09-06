@@ -19,7 +19,7 @@ class Statistic(Table):
     """
     IPC_COMMANDS = {'GET': ('count',),
                     'SET': ('count',),
-                    'ACT': ()}
+                    'ACT': ('increment', 'decrement')}
 
     def __add__(self, i):
         dt = datetime.datetime.now().strftime(self.time_fmt)
@@ -37,7 +37,7 @@ class Statistic(Table):
         return self
 
     def __sub__(self, i):
-        count = self.count + 1 - i
+        count = self.count - i
         try:
             self.tracker.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
             self.tracker.dbcon.commit()
@@ -47,6 +47,14 @@ class Statistic(Table):
             self.count = count
             logging.debug('{s.name} count set to {s.count}'.format(s=self))
         return self
+
+    def increment(self, by):
+        self += by
+        return self.count
+
+    def decrement(self, by):
+        self -= by
+        return self.count
 
     def __repr__(self):
         return "Statistic ({s.name}): {s.count}".format(s=self)
