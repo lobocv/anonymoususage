@@ -40,6 +40,7 @@ except Exception as e:
     print __help__
     sys.exit(-1)
 
+
 print 'Creating Usage Tracker..'
 usage_tracker = AnonymousUsageTracker(uuid=UUID,
                                       filepath=FILEPATH)
@@ -47,9 +48,11 @@ usage_tracker = AnonymousUsageTracker(uuid=UUID,
 print 'Opening connection..'
 if HOST in ('localhost', '127.0.0.1'):
     HOST = ''
-s = usage_tracker.open_socket(HOST, int(PORT))
+
+sock = usage_tracker.open_socket(HOST, int(PORT))
 
 print 'Starting tracker..'
-usage_tracker.monitor_socket(s)
+usage_tracker.monitor_socket(sock)
+
 print 'Stopping tracker..'
 

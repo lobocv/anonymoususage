@@ -27,7 +27,7 @@ class AnonymousUsageTracker(object):
     IPC_COMMANDS = {'GET': (),
                     'SET': (),
                     'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'submit_statistics',
-                            'get_table_info')}
+                            'get_table_info', 'new_connection', 'close_connection')}
 
     def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0,
                  application_name='', application_version='', debug=False):
@@ -57,6 +57,8 @@ class AnonymousUsageTracker(object):
         self._hq = {}
         self._watcher = None
         self._watcher_enabled = False
+        self._open_sockets = {}
+        self._discovery_socket_port = None
 
         # Create the data base connections to the master database and partial database (if submit_interval)
         self.dbcon_master = sqlite3.connect(self.filepath, check_same_thread=False)
@@ -369,25 +371,83 @@ class AnonymousUsageTracker(object):
         logger.debug('Watcher stopped.')
         self._watcher = None
 
-
     #############################################################
-    #               Interprocess Communication                  #
+    #               Inter-process Communication                 #
     #############################################################
 
     def open_socket(self, host, port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((host, port))
-        return s
+        """
+        Open a socket on the specified host and port
+        :return: socket instance
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((host, port))
+        self._open_sockets[port] = dict(local_host=host, socket=sock, local_port=port)
+        if len(self._open_sockets) == 1:
+            self._discovery_socket_port = port
+        return sock
 
-    def monitor_socket(self, socket):
-        s = socket
-        s.setblocking(1)
-        s.listen(1)
-        conn, addr = s.accept()
-        while 1:
-            error_msg = ''
-            response = ''
-            action = ''
+    def new_connection(self, port):
+        """
+        Create a new connection on a different port that is monitored for IPC commands.
+        This command closes the current socket connection and reopens it so that a new connection can be made.
+        :param port: Port to open new connection under
+        """
+        if len(self._open_sockets):
+            host = self._open_sockets.values()[0]['local_host']
+            if port in [s['local_port'] for s in self._open_sockets.values()]:
+                return 'Port %d is already in use' % port
+
+            sock = self.open_socket(host, port)
+            thread = threading.Thread(target=self.monitor_socket, args=(sock,))
+            thread.start()
+            self._open_sockets[port]['thread'] = thread
+            del self._open_sockets[self._discovery_socket_port]['connection']
+
+            return 'New connection has been opened on port %d' % port
+
+    def close_connection(self, *ports):
+        """
+        Close a connection on the specified ports
+        :param ports: list of ports to be closed. Closes all open ports if none are specified.
+        """
+        if len(ports) == 0:
+            ports = self._open_sockets.keys()
+        for port in ports:
+            if port in self._open_sockets:
+                sock = self._open_sockets[port]['socket']
+                sock.shutdown(socket.SHUT_WR)
+                sock.close()
+                del self._open_sockets[port]
+
+    def _close_discovery_socket(self):
+        info = self._open_sockets[self._discovery_socket_port]
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((info['local_host'], info['local_port']))
+        sock.send('')
+        self.close_connection(self._discovery_socket_port)
+
+    def monitor_socket(self, sock):
+        """
+        Start listening for and monitor inter-process communication on a socket
+        :param sock: Socket
+        """
+        sock.setblocking(1)
+        sock.listen(1)
+        local_host, local_port = sock.getsockname()
+
+        while local_port in self._open_sockets:
+
+            if self._open_sockets[local_port].get('connection') is None:
+                sock = self._open_sockets[local_port]['socket']
+                local_host, local_port = sock.getsockname()
+                print 'Looking for connections on port %d' % local_port
+                conn, (remote_host, remote_port) = sock.accept()
+                print 'Communication opened at %s:%d' % (remote_host, remote_port)
+                self._open_sockets[local_port].update(dict(connection=conn, remote_host=remote_host,
+                                                           remote_port=remote_port))
+
+            response = action = error_msg = ''
             packet = conn.recv(1024)
             if packet == '':
                 break
@@ -427,47 +487,10 @@ class AnonymousUsageTracker(object):
 
             # If there was an error, send back the error message, otherwise the response
             conn.send(error_msg or response)
-            print packet
+            print 'Request on Port {port}: {packet}'.format(packet=packet, port=remote_port)
+            print 'Response on Port {port}: {response}'.format(response=(error_msg or response), port=remote_port)
 
-
-if __name__ == '__main__':
-
-    interval = datetime.timedelta(seconds=2)
-    # interval = None
-    tracker = AnonymousUsageTracker(uuid='123',
-                                    filepath='/home/calvin/test/testtracker.db',
-                                    check_interval_s=600,
-                                    submit_interval_s=interval)
-    tracker.setup_hq(host='ftp.sensoft.ca',
-                      user='LMX',
-                      passwd='G8mu5YLC6CCKkwme',
-                      path='./usage')
-    stat1 = 'Screenshots'
-    stat2 = 'Grids'
-    stat3 = 'Lines'
-    state1 = 'Units'
-
-    tracker.track_statistic(stat1)
-    tracker.track_statistic(stat2)
-    tracker.track_statistic(stat3)
-
-    tracker.track_state(state1, initial_state='US Standard')
-    tracker[stat1] += 1
-    tracker[stat1] += 1
-    # tracker[stat2] += 1
-    # tracker[stat3] += 1
-    # tracker[state1] = 'Metric'
-    tracker[stat1] -= 1
-    tracker[stat1] -= 1
-    tracker[stat1] += 1
-    tracker[stat1] += 1
-
-
-    # tracker[state1] = 'US Standard'
-    # tracker.merge_part()
-    # tracker.dbcon.close()
-
-
-    while 1:
-        pass
-        # tracker.ftp_submit()
+        print 'Stopping monitoring of port {port}'.format(port=local_port)
+        self.close_connection(local_port)
+        if len(self._open_sockets) == 1:
+            self._close_discovery_socket()
