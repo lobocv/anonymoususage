@@ -427,8 +427,9 @@ class AnonymousUsageTracker(object):
         info = self._open_sockets[self._discovery_socket_port]
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((info['local_host'], info['local_port']))
-        sock.send('')
-        self.close_connection(self._discovery_socket_port)
+        cmd = json.dumps({'command': 'ACT', 'trackable': '', 'action': 'close_connectis', 'args': (info['local_port'],)})
+        sock.send(cmd)
+        response = sock.recv(1024)
 
     def monitor_socket(self, sock):
         """
