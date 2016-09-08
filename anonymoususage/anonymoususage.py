@@ -421,6 +421,9 @@ class AnonymousUsageTracker(object):
                 del self._open_sockets[port]
 
     def _close_discovery_socket(self):
+        """
+        Bind to our discovery socket and send a command to close communication and shutdown the socket
+        """
         info = self._open_sockets[self._discovery_socket_port]
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((info['local_host'], info['local_port']))
@@ -441,9 +444,9 @@ class AnonymousUsageTracker(object):
             if self._open_sockets[local_port].get('connection') is None:
                 sock = self._open_sockets[local_port]['socket']
                 local_host, local_port = sock.getsockname()
-                print 'Looking for connections on port %d' % local_port
+                logging.info('Looking for connections on port %d' % local_port)
                 conn, (remote_host, remote_port) = sock.accept()
-                print 'Communication opened at %s:%d' % (remote_host, remote_port)
+                logging.info('Communication opened at %s:%d' % (remote_host, remote_port))
                 self._open_sockets[local_port].update(dict(connection=conn, remote_host=remote_host,
                                                            remote_port=remote_port))
 
@@ -487,10 +490,10 @@ class AnonymousUsageTracker(object):
 
             # If there was an error, send back the error message, otherwise the response
             conn.send(error_msg or response)
-            print 'Request on Port {port}: {packet}'.format(packet=packet, port=remote_port)
-            print 'Response on Port {port}: {response}'.format(response=(error_msg or response), port=remote_port)
+            logging.info('Request on Port {port}: {packet}'.format(packet=packet, port=remote_port))
+            logging.info('Response on Port {port}: {response}'.format(response=(error_msg or response), port=remote_port))
 
-        print 'Stopping monitoring of port {port}'.format(port=local_port)
+        logging.info('Stopping monitoring of port {port}'.format(port=local_port))
         self.close_connection(local_port)
         if len(self._open_sockets) == 1:
             self._close_discovery_socket()

@@ -1,7 +1,10 @@
+import os
+import logging
+import sys
+
 from anonymoususage import AnonymousUsageTracker
 from anonymoususage.tables import TRACKABLES
 from anonymoususage.api import COMMANDS
-import sys
 
 __help__ = \
     '''
@@ -41,18 +44,20 @@ except Exception as e:
     sys.exit(-1)
 
 
-print 'Creating Usage Tracker..'
+logging.basicConfig(filename=os.path.splitext(FILEPATH)[0] + '.log', level=logging.DEBUG)
+
+logging.info('Creating Usage Tracker..')
 usage_tracker = AnonymousUsageTracker(uuid=UUID,
                                       filepath=FILEPATH)
 
-print 'Opening connection..'
+logging.info('Opening connection..')
 if HOST in ('localhost', '127.0.0.1'):
     HOST = ''
 
 sock = usage_tracker.open_socket(HOST, int(PORT))
 
-print 'Starting tracker..'
+logging.info('Starting tracker..')
 usage_tracker.monitor_socket(sock)
 
-print 'Stopping tracker..'
+logging.info('Stopping tracker..')
 
