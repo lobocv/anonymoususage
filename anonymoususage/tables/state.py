@@ -5,6 +5,7 @@ import sqlite3
 import logging
 
 from .table import Table
+from ..tools import insert_row
 
 
 logger = logging.getLogger('AnonymousUsage')
@@ -55,12 +56,8 @@ class State(Table):
         dt = datetime.datetime.now().strftime(self.time_fmt)
 
         try:
-            self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
-                                                                                args=(self.tracker.uuid,
-                                                                                      self.count + 1,
-                                                                                      str(value),
-                                                                                      dt)))
-            self.tracker.dbcon.commit()
+            with Table.lock:
+                insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, self.count + 1, str(value), dt)
         except sqlite3.Error as e:
             logger.error(e)
         else:
