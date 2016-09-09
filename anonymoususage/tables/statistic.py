@@ -26,7 +26,8 @@ class Statistic(Table):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         count = self.count + i
         try:
-            insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
+            with Table.lock:
+                insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
         except sqlite3.Error as e:
             logger.error(e)
         else:

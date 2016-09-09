@@ -4,6 +4,7 @@ import logging
 
 from anonymoususage.tools import *
 from anonymoususage.exceptions import *
+from threading import RLock
 
 logger = logging.getLogger('AnonymousUsage')
 
@@ -14,6 +15,7 @@ class Table(object):
     IPC_COMMANDS = {'GET': ('count',),
                     'SET': (),
                     'ACT': ()}
+    lock = RLock()
 
     def __init__(self, name, tracker):
         if ' ' in name:
