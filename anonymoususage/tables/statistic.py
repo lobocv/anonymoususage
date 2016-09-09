@@ -36,15 +36,7 @@ class Statistic(Table):
         return self
 
     def __sub__(self, i):
-        count = self.count - i
-        try:
-            self.tracker.dbcon.execute("DELETE FROM {name} WHERE Count = {count}".format(name=self.name, count=count))
-            self.tracker.dbcon.commit()
-        except sqlite3.Error as e:
-            logger.error(e)
-        else:
-            self.count = count
-            logging.debug('{s.name} count set to {s.count}'.format(s=self))
+        self += -i
         return self
 
     def increment(self, by):
