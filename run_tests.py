@@ -4,9 +4,9 @@ import unittest
 from StringIO import StringIO
 from pprint import pprint
 
-from unit_tests.anonymoususage import AnonymousUsageTests
+from unit_tests.statistic import StatisticTests
 
-RUN_TESTS = [AnonymousUsageTests]
+RUN_TESTS = [StatisticTests]
 
 total_errors = 0
 total_failures = 0
