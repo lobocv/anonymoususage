@@ -1,6 +1,5 @@
 import os
 import logging
-import sys
 import argparse
 
 from anonymoususage import AnonymousUsageTracker
@@ -62,18 +61,13 @@ def run_server(uuid, host, port, db_path, config=None):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser('Start a server that can be communicated through sockets to track user behaviour')
-    parser.add_argument('uuid', nargs=1, type=str)
-    parser.add_argument('host', nargs=1, type=str)
-    parser.add_argument('port', nargs=1, type=int)
-    parser.add_argument('db_path', nargs=1, type=str)
-    parser.add_argument('--config', nargs=1, default=[None], type=str, dest='config')
+    parser = argparse.ArgumentParser(__help__)
+    parser.add_argument('uuid', nargs=1, type=str, help='Unique identifier associated with the user')
+    parser.add_argument('host', nargs=1, type=str, help='IP to host the server')
+    parser.add_argument('port', nargs=1, type=int, help='Port to host the server')
+    parser.add_argument('db_path', nargs=1, type=str, help='Path to store the database')
+    parser.add_argument('--config', nargs=1, default=[None], type=str, dest='config', help='Path to the configuration file')
 
     args = parser.parse_args()
-    try:
-        UUID, HOST, PORT, FILEPATH = sys.argv[1:]
-    except Exception as e:
-        print __help__
-        sys.exit(-1)
-    else:
-        run_server(args.uuid[0], args.host[0], args.port[0], args.db_path[0], config=args.config[0])
+
+    run_server(args.uuid[0], args.host[0], args.port[0], args.db_path[0], config=args.config[0])
