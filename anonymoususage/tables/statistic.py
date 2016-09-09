@@ -5,6 +5,7 @@ import sqlite3
 import logging
 
 from .table import Table
+from ..tools import insert_row
 
 logger = logging.getLogger('AnonymousUsage')
 
@@ -25,9 +26,7 @@ class Statistic(Table):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         count = self.count + i
         try:
-            self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
-                                                                        args=(self.tracker.uuid, count, dt)))
-            self.tracker.dbcon.commit()
+            insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
         except sqlite3.Error as e:
             logger.error(e)
         else:
