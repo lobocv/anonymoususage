@@ -38,7 +38,7 @@ __help__ = \
 
 def run_server(uuid, host, port, db_path, config=None):
 
-    logging.basicConfig(filename=os.path.splitext(FILEPATH)[0] + '.log', level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.splitext(db_path)[0] + '.log', level=logging.DEBUG)
 
     logging.info('Creating Usage Tracker..')
     if config:
