@@ -5,8 +5,9 @@ from StringIO import StringIO
 from pprint import pprint
 
 from unit_tests.statistic import StatisticTests
+from unit_tests.state import StateTests
 
-RUN_TESTS = [StatisticTests]
+RUN_TESTS = [StatisticTests, StateTests]
 
 total_errors = 0
 total_failures = 0
