@@ -26,6 +26,18 @@ def create_table(dbcon, name, columns):
         return False
 
 
+def insert_row(dbconn, tablename, *args):
+    """
+    Insert a row into a table
+    :param dbconn: data base connection
+    :param table_name: name of the table
+    :param args: table columns
+    """
+    cur = dbconn.cursor()
+    cur.execute("INSERT INTO {name} VALUES{args}".format(name=tablename, args=args))
+    dbconn.commit()
+
+
 def delete_row(dbconn, table_name, field, value):
     """
     Delete a row from a table in a database.
