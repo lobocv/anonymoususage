@@ -94,7 +94,13 @@ class AnonymousUsageTracker(object):
         """
         Insert a new row into the table of name `key` with value `value`
         """
-        self._tables[key].insert(value)
+        table = self._tables.get(key)
+        if table:
+            if isinstance(table, Statistic):
+                diff = value - table.count
+                table += diff
+            elif isinstance(table, (State, Sequence)):
+                table.insert(value)
 
     def close(self):
         self.dbcon_part.commit()
