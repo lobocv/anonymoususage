@@ -152,9 +152,9 @@ def get_last_row(dbconn, tablename, n=1, uuid=None):
     cur = dbconn.cursor()
     try:
         if uuid:
-            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY Count DESC LIMIT {};".format(tablename, uuid, n))
+            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY ROWID DESC LIMIT {};".format(tablename, uuid, n))
         else:
-            cur.execute("SELECT * FROM {} ORDER BY Count DESC LIMIT {};".format(tablename, n))
+            cur.execute("SELECT * FROM {} ORDER BY ROWID DESC LIMIT {};".format(tablename, n))
     except sqlite3.OperationalError as e:
         logger.error(e)
         return []
