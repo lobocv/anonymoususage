@@ -47,7 +47,8 @@ def delete_row(dbconn, table_name, field, value):
     :param value: value of the field in the table to delete
     """
     cur = dbconn.cursor()
-    cur.execute("DELETE FROM {name} WHERE {field}={value}".format(name=table_name, field=field, value=value))
+    cur.execute("DELETE FROM {name} WHERE {field}='{value}'".format(name=table_name, field=field, value=value))
+    dbconn.commit()
 
 
 def get_table_list(dbconn):
