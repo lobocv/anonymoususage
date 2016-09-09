@@ -32,15 +32,23 @@ class State(Table):
 
         if self.count == 0:
             # This is a new table
-            self.state = initial_state
+            self._state = initial_state
             if initial_state is not NO_STATE:
                 # If the initial state was not NO_STATE, then add it to the database
-                self.insert(self.state)
+                self.insert(self._state)
         else:
-            self.state = self.get_last(1)[0]['State']
+            self._state = self.get_last(1)[0]['State']
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self.insert(value)
 
     def insert(self, value):
-        if not self.keep_redundant and value == self.state:
+        if not self.keep_redundant and value == self._state:
             # Don't add redundant information, ie if the state value is the same as the previous do not insert a new row
             return
 
@@ -56,11 +64,11 @@ class State(Table):
         except sqlite3.Error as e:
             logger.error(e)
         else:
-            self.state = value
+            self._state = value
             self.count += 1
             logger.debug("{name} state set to {value}".format(name=self.name, value=value))
         return self
 
     def __repr__(self):
-        state = self.state if self.state is not NO_STATE else 'No State'
+        state = self._state if self._state is not NO_STATE else 'No State'
         return "State ({s.name}): {state}".format(s=self, state=state)

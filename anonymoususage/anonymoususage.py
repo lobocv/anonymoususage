@@ -229,7 +229,7 @@ class AnonymousUsageTracker(object):
                     if name not in payload['Data']:
                         table = self[name]
                         if isinstance(table, State):
-                            data = 'No State' if table.state == NO_STATE else table.state
+                            data = 'No State' if table._state == NO_STATE else table._state
                         else:
                             data = table.count
                         tableinfo[name]['data'] = data
