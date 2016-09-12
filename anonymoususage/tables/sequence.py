@@ -8,6 +8,7 @@ from itertools import imap
 from operator import eq
 from collections import deque
 from .table import Table
+from ..tools import insert_row
 from anonymoususage.exceptions import InvalidCheckpointError
 
 logger = logging.getLogger('AnonymousUsage')
@@ -41,11 +42,9 @@ class Sequence(Table):
                 # Sequence is complete. Increment the database
                 dt = datetime.datetime.now().strftime(self.time_fmt)
                 count = self.count + 1
-                uuid = self.tracker.uuid
                 try:
-                    self.tracker.dbcon.execute("INSERT INTO {name} VALUES{args}".format(name=self.name,
-                                                                                        args=(uuid, count, dt)))
-                    self.tracker.dbcon.commit()
+                    with Table.lock:
+                        insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
                 except sqlite3.Error as e:
                     logger.error(e)
                 else:
