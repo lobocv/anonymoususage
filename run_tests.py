@@ -6,8 +6,9 @@ from pprint import pprint
 
 from unit_tests.statistic import StatisticTests
 from unit_tests.state import StateTests
+from unit_tests.sequence import SequenceTests
 
-RUN_TESTS = [StatisticTests, StateTests]
+RUN_TESTS = [StatisticTests, StateTests, SequenceTests]
 
 total_errors = 0
 total_failures = 0

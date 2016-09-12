@@ -96,7 +96,9 @@ class AnonymousUsageTracker(object):
         """
         table = self._tables.get(key)
         if table:
-            if isinstance(table, Statistic):
+            if isinstance(table, Statistic) and isinstance(value, (float, int)):
+                # Due to Statistic.__add__ returning itself, we must check that the value is a number,
+                # otherwise we could be adding a object to a number
                 diff = value - table.count
                 table += diff
             elif isinstance(table, (State, Sequence)):

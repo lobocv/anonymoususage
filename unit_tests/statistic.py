@@ -5,26 +5,29 @@ class StatisticTests(AnonymousUsageTests):
 
     def test_increment(self):
         s = self.tracker['Statistic']
+        # We must remember to test both ways of incrementing the stat due to custom __setitem__ implementation
         s += 1
-        s += 1
-        s += 1
+        self.tracker['Statistic'] += 1
+
         nrows = s.get_number_of_rows()
-        self.assertEquals(3, nrows)
-        self.assertEquals(s.count, 3)
+        self.assertEquals(2, nrows)
+        self.assertEquals(s.count, 2)
         s += 10
-        self.assertEquals(s.count, 13)
+        self.assertEquals(s.count, 12)
 
     def test_decrement(self):
         s = self.tracker['Statistic']
         s -= 1
-        s -= 1
-        s -= 1
+        self.tracker['Statistic'] -= 1
         nrows = s.get_number_of_rows()
-        self.assertEquals(3, nrows)
-        self.assertEquals(s.count, -3)
+        self.assertEquals(2, nrows)
+        self.assertEquals(s.count, -2)
+
+        s -= 10
+        self.assertEquals(s.count, -12)
 
     def test_set_value(self):
-        s =self.tracker['Statistic']
+        s = self.tracker['Statistic']
         self.tracker['Statistic'] = 100
         nrows = s.get_number_of_rows()
         self.assertEquals(1, nrows)
