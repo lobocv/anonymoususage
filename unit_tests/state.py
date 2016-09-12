@@ -3,12 +3,6 @@ from . import AnonymousUsageTests
 
 class StateTests(AnonymousUsageTests):
 
-    trackable = 'State'
-
-    def _assign_a_value(self):
-        self.tracker['State'] = 'SomeValue'
-        return 'SomeValue'
-
     def test_set_value(self):
         s = self.tracker['State']
         self.tracker['State'] = 'SomeState'
