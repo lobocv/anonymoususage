@@ -388,6 +388,7 @@ class AnonymousUsageTracker(object):
         Open a socket on the specified host and port
         :return: socket instance
         """
+        logging.info('Opening socket on port {port}'.format(port=port))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((host, port))
         self._open_sockets[port] = dict(local_host=host, socket=sock, local_port=port)
@@ -407,6 +408,7 @@ class AnonymousUsageTracker(object):
                 return 'Port %d is already in use' % port
 
             sock = self.open_socket(host, port)
+            logging.info('Spawning new thread to monitor port {port}'.format(port=port))
             thread = threading.Thread(target=self.monitor_socket, args=(sock,))
             thread.start()
             self._open_sockets[port]['thread'] = thread
@@ -423,15 +425,19 @@ class AnonymousUsageTracker(object):
             ports = self._open_sockets.keys()
         for port in ports:
             if port in self._open_sockets:
+                logging.info('Closing the socket on port {port}'.format(port=port))
                 sock = self._open_sockets[port]['socket']
                 sock.shutdown(socket.SHUT_WR)
                 sock.close()
                 del self._open_sockets[port]
+        logging.info('%d Connections remain open' % len(self._open_sockets))
+        return 'Ports %s have been closed. %d ports remain open' % (','.join(map(str, ports)), len(self._open_sockets))
 
     def _close_discovery_socket(self):
         """
         Bind to our discovery socket and send a command to close communication and shutdown the socket
         """
+        logging.info('Closing Discovery port (%d)' % self._discovery_socket_port)
         info = self._open_sockets[self._discovery_socket_port]
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((info['local_host'], info['local_port']))
@@ -504,5 +510,6 @@ class AnonymousUsageTracker(object):
 
         logging.info('Stopping monitoring of port {port}'.format(port=local_port))
         self.close_connection(local_port)
+
         if len(self._open_sockets) == 1:
             self._close_discovery_socket()
