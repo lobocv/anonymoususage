@@ -467,7 +467,7 @@ class AnonymousUsageTracker(object):
                     try:
                         conn, (remote_host, remote_port) = sock.accept()
                     except socket.timeout:
-                        pass
+                        continue
                     else:
                         sock.settimeout(0)
                         break
