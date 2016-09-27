@@ -443,14 +443,16 @@ class AnonymousUsageTracker(object):
         sock.connect((info['local_host'], info['local_port']))
         cmd = json.dumps({'command': 'ACT', 'trackable': '', 'action': 'close_connection', 'args': (info['local_port'],)})
         sock.send(cmd)
-        response = sock.recv(1024)
+        try:
+            response = sock.recv(1024)
+        except socket.error:
+            pass
 
     def monitor_socket(self, sock):
         """
         Start listening for and monitor inter-process communication on a socket
         :param sock: Socket
         """
-        sock.setblocking(1)
         sock.listen(1)
         local_host, local_port = sock.getsockname()
 
@@ -460,7 +462,15 @@ class AnonymousUsageTracker(object):
                 sock = self._open_sockets[local_port]['socket']
                 local_host, local_port = sock.getsockname()
                 logging.info('Looking for connections on port %d' % local_port)
-                conn, (remote_host, remote_port) = sock.accept()
+                while 1:
+                    sock.settimeout(5)
+                    try:
+                        conn, (remote_host, remote_port) = sock.accept()
+                    except socket.timeout:
+                        pass
+                    else:
+                        sock.settimeout(0)
+                        break
                 logging.info('Communication opened at %s:%d' % (remote_host, remote_port))
                 self._open_sockets[local_port].update(dict(connection=conn, remote_host=remote_host,
                                                            remote_port=remote_port))
