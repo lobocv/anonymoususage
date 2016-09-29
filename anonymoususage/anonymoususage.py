@@ -27,9 +27,9 @@ class AnonymousUsageTracker(object):
     IPC_COMMANDS = {'GET': (),
                     'SET': (),
                     'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'submit_statistics',
-                            'get_table_info', 'new_connection', 'close_connection')}
+                            'enable', 'disable', 'get_table_info', 'new_connection', 'close_connection')}
 
-    def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0,
+    def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0, enabled=True,
                  application_name='', application_version='', debug=False):
         """
         Create a usage tracker database with statistics from a unique user defined by the uuid.
@@ -55,6 +55,7 @@ class AnonymousUsageTracker(object):
         self.regex_db = re.compile(r'%s_\d+.db' % self.uuid)
         self._tables = {}
         self._hq = {}
+        self._enabled = enabled
         self._watcher = None
         self._watcher_enabled = False
         self._open_sockets = {}
@@ -206,7 +207,7 @@ class AnonymousUsageTracker(object):
         Upload the database to the FTP server. Only submit new information contained in the partial database.
         Merge the partial database back into master after a successful upload.
         """
-        if not self._hq.get('api_key', False):
+        if not self._hq.get('api_key', False) or not self._enabled:
             return
         for r in ('uuid', 'application_name', 'application_version'):
             if not getattr(self, r, False):
@@ -303,12 +304,22 @@ class AnonymousUsageTracker(object):
         return tracker
 
     def enable(self):
+        """
+        Gives the tracker permission to upload statistics
+        """
         logger.debug('Enabled.')
+        self._enabled = True
         self.start_watcher()
+        return 'Uploading of statistics has been enabled'
 
     def disable(self):
+        """
+        Revokes the tracker's permission to upload statistics
+        """
         logger.debug('Disabled.')
+        self._enabled = False
         self.stop_watcher()
+        return 'Uploading of statistics has been disabled'
 
     def start_watcher(self):
         """

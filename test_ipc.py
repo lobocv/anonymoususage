@@ -26,7 +26,6 @@ for cmd in cmds:
         s.send(json.dumps(cmd))
         print s.recv(1024)
 
-
 cmds = [# Statistic
         {'command': 'GET', 'trackable': 'grids', 'attribute': 'count'},
         {'command': 'SET', 'trackable': 'grids', 'attribute': 'count', 'value': 50},
@@ -64,8 +63,12 @@ cmds = [# Statistic
         {'command': 'GET', 'trackable': 'my_sequence', 'attribute': 'checkpoint'},
         {'command': 'SET', 'trackable': 'my_sequence', 'attribute': 'checkpoint', 'value': 'D'},
         {'command': 'GET', 'trackable': 'my_sequence', 'attribute': 'count'},
+        {'command': 'ACT', 'trackable': '', 'action': 'disable', 'args': ()},
+        {'command': 'ACT', 'trackable': '', 'action': 'submit_statistics', 'args': ()},
+        {'command': 'ACT', 'trackable': '', 'action': 'enable', 'args': ()},
 
 ]
+
 
 for cmd in cmds:
     if not isinstance(cmd, dict):
