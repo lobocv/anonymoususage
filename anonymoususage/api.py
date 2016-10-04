@@ -67,6 +67,8 @@ def act_(obj, action, *args):
     if action in obj.IPC_COMMANDS['ACT']:
         response = getattr(obj, action)(*args)
         return response or 'Call to %s has been processed' % action
+    else:
+        raise ValueError('ACT command is not available for %s' % action)
 
 
 COMMANDS = [get_, set_, act_]

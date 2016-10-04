@@ -6,7 +6,7 @@ import socket
 
 
 HOST = ''
-PORT = 1213
+PORT = 1214
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
@@ -63,6 +63,7 @@ cmds = [# Statistic
         {'command': 'GET', 'trackable': 'my_sequence', 'attribute': 'checkpoint'},
         {'command': 'SET', 'trackable': 'my_sequence', 'attribute': 'checkpoint', 'value': 'D'},
         {'command': 'GET', 'trackable': 'my_sequence', 'attribute': 'count'},
+        {'command': 'ACT', 'trackable': '', 'action': 'NON_EXISTING_FUNC', 'args': ()},
         {'command': 'ACT', 'trackable': '', 'action': 'disable', 'args': ()},
         {'command': 'ACT', 'trackable': '', 'action': 'submit_statistics', 'args': ()},
         {'command': 'ACT', 'trackable': '', 'action': 'enable', 'args': ()},
