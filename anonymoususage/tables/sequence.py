@@ -29,8 +29,8 @@ class Sequence(Table):
                     'SET': ('count', 'checkpoint'),
                     'ACT': ('get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint')}
 
-    def __init__(self, name, tracker, checkpoints):
-        super(Sequence, self).__init__(name, tracker)
+    def __init__(self, name, tracker, checkpoints, *args, **kwargs):
+        super(Sequence, self).__init__(name, tracker, *args, **kwargs)
         self.checkpoints = checkpoints
         self.sequence = deque([], maxlen=len(checkpoints))
 
@@ -44,6 +44,8 @@ class Sequence(Table):
                 count = self.count + 1
                 try:
                     with Table.lock:
+                        if self.get_number_of_rows() >= self.max_rows:
+                            self.delete_first()
                         insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
                 except sqlite3.Error as e:
                     logger.error(e)

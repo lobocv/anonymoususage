@@ -27,6 +27,8 @@ class Statistic(Table):
         count = self.count + i
         try:
             with Table.lock:
+                if self.get_number_of_rows() >= self.max_rows:
+                    self.delete_first()
                 insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, count, dt)
         except sqlite3.Error as e:
             logger.error(e)

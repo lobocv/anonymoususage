@@ -20,8 +20,8 @@ class Timer(Statistic):
                     'SET': (),
                     'ACT': ('start_timer', 'pause_timer', 'resume_timer', 'stop_timer')}
 
-    def __init__(self, name, tracker):
-        super(Timer, self).__init__(name, tracker)
+    def __init__(self, name, tracker, *args, **kwargs):
+        super(Timer, self).__init__(name, tracker, *args, **kwargs)
         self._start_time = None
         self.paused = False
         self._delta_seconds = 0

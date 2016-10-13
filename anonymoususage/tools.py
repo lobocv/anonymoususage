@@ -9,7 +9,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
-           'get_number_of_rows', 'get_last_row', 'rename_table', 'database_to_json']
+           'get_number_of_rows', 'get_last_row', 'get_first_row', 'fetch', 'rename_table', 'database_to_json']
 
 
 def create_table(dbcon, name, columns):
@@ -152,10 +152,9 @@ def get_rows(dbconn, tablename, uuid=None):
     rows = cursor.fetchall()
     return rows
 
-
-def get_last_row(dbconn, tablename, n=1, uuid=None):
+def fetch(dbconn, tablename, n=1, uuid=None, end=True):
     """
-    Returns the last `n` rows in the table
+    Returns `n` rows from the table's start or end
     :param dbconn: database connection
     :param tablename: name of the table
     :param n: number of rows to return from the end of the table
@@ -163,16 +162,31 @@ def get_last_row(dbconn, tablename, n=1, uuid=None):
     :return: If n > 1, a list of rows. If n=1, a single row
     """
     cur = dbconn.cursor()
+    order = 'DESC' if end else 'ASC'
     try:
         if uuid:
-            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY ROWID DESC LIMIT {};".format(tablename, uuid, n))
+            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY ROWID {} LIMIT {};".format(tablename, uuid, order, n))
         else:
-            cur.execute("SELECT * FROM {} ORDER BY ROWID DESC LIMIT {};".format(tablename, n))
+            cur.execute("SELECT * FROM {} ORDER BY ROWID {} LIMIT {};".format(tablename, order, n))
     except sqlite3.OperationalError as e:
         logger.error(e)
         return []
     rows = cur.fetchall()
     return rows
+
+
+def get_last_row(dbconn, tablename, n=1, uuid=None):
+    """
+    Returns the last `n` rows in the table
+    """
+    return fetch(dbconn, tablename, n, uuid, end=True)
+
+
+def get_first_row(dbconn, tablename, n=1, uuid=None):
+    """
+    Returns the first `n` rows in the table
+    """
+    return fetch(dbconn, tablename, n, uuid, end=False)
 
 
 def merge_databases(master, part):

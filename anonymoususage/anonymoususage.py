@@ -23,6 +23,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 class AnonymousUsageTracker(object):
     HQ_DEFAULT_TIMEOUT = 10
+    MAX_ROWS_PER_TABLE = 1000
 
     IPC_COMMANDS = {'GET': (),
                     'SET': (),
@@ -149,41 +150,49 @@ class AnonymousUsageTracker(object):
             tableinfo = {r[0]: {'type': r[1], 'description': r[2]} for r in rows}
         return tableinfo
 
-    def track_statistic(self, name, description=''):
+    def track_statistic(self, name, description='', max_rows=None):
         """
         Create a Statistic object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        if max_rows is None:
+            max_rows = AnonymousUsageTracker.MAX_ROWS_PER_TABLE
         self.register_table(name, self.uuid, 'Statistic', description)
-        self._tables[name] = Statistic(name, self)
+        self._tables[name] = Statistic(name, self, max_rows=max_rows)
 
-    def track_state(self, name, initial_state, description='', **state_kw):
+    def track_state(self, name, initial_state, description='', max_rows=None, **state_kw):
         """
         Create a State object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        if max_rows is None:
+            max_rows = AnonymousUsageTracker.MAX_ROWS_PER_TABLE
         self.register_table(name, self.uuid, 'State', description)
-        self._tables[name] = State(name, self, initial_state, **state_kw)
+        self._tables[name] = State(name, self, initial_state, max_rows=max_rows, **state_kw)
 
-    def track_time(self, name, description=''):
+    def track_time(self, name, description='', max_rows=None):
         """
         Create a Timer object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        if max_rows is None:
+            max_rows = AnonymousUsageTracker.MAX_ROWS_PER_TABLE
         self.register_table(name, self.uuid, 'Timer', description)
-        self._tables[name] = Timer(name, self)
+        self._tables[name] = Timer(name, self, max_rows=max_rows)
 
-    def track_sequence(self, name, checkpoints, description=''):
+    def track_sequence(self, name, checkpoints, description='', max_rows=None):
         """
         Create a Sequence object in the Tracker.
         """
         if name in self._tables:
             raise TableConflictError(name)
+        if max_rows is None:
+            max_rows = AnonymousUsageTracker.MAX_ROWS_PER_TABLE
         self.register_table(name, self.uuid, 'Sequence', description)
-        self._tables[name] = Sequence(name, self, checkpoints)
+        self._tables[name] = Sequence(name, self, checkpoints, max_rows=max_rows)
 
     def get_row_count(self):
         info = {}

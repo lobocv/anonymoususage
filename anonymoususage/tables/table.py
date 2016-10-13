@@ -17,9 +17,10 @@ class Table(object):
                     'ACT': ()}
     lock = RLock()
 
-    def __init__(self, name, tracker):
+    def __init__(self, name, tracker, max_rows):
         if ' ' in name:
             raise TableNameError(name)
+        self.max_rows = max_rows
         self.tracker = tracker
         self.name = name
 
@@ -81,8 +82,16 @@ class Table(object):
         if last:
             last = last[0]
             db = self.tracker.dbcon_part if self.tracker.dbcon_part else self.tracker.dbcon_master
-            delete_row(db, self.name, "Count", last['Count'])
+            delete_row(db, self.name, "Time", last['Time'])
             self.count -= 1
+
+    def delete_first(self):
+        for db in (self.tracker.dbcon_master, self.tracker.dbcon_part):
+            if db:
+                rowid = get_first_row(db, self.name)
+                if rowid:
+                    delete_row(db, self.name, "Time", rowid[0]['Time'])
+                    break
 
     def get_count(self):
         row = self.get_last()

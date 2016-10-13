@@ -27,8 +27,8 @@ class State(Table):
                     'SET': ('count', 'state'),
                     'ACT': ()}
 
-    def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False):
-        super(State, self).__init__(name, tracker)
+    def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False, *args, **kwargs):
+        super(State, self).__init__(name, tracker, *args, **kwargs)
         self.keep_redundant = keep_redundant
 
         if self.count == 0:
@@ -57,7 +57,10 @@ class State(Table):
 
         try:
             with Table.lock:
+                if self.get_number_of_rows() >= self.max_rows:
+                    self.delete_first()
                 insert_row(self.tracker.dbcon, self.name, self.tracker.uuid, self.count + 1, str(value), dt)
+
         except sqlite3.Error as e:
             logger.error(e)
         else:
