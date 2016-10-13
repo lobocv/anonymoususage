@@ -25,7 +25,7 @@ class State(Table):
     table_args = ("UUID", "INT"), ("Count", "INT"), ("State", "TEXT"), ("Time", "TEXT")
     IPC_COMMANDS = {'GET': ('count', 'state'),
                     'SET': ('count', 'state'),
-                    'ACT': ()}
+                    'ACT': ('change')}
 
     def __init__(self, name, tracker, initial_state=NO_STATE, keep_redundant=False, *args, **kwargs):
         super(State, self).__init__(name, tracker, *args, **kwargs)
@@ -47,6 +47,10 @@ class State(Table):
     @state.setter
     def state(self, value):
         self.insert(value)
+
+    def change(self, value):
+        self.state = value
+        return self.state
 
     def insert(self, value):
         if not self.keep_redundant and value == self._state:

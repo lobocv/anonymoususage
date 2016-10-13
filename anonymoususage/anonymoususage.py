@@ -496,7 +496,11 @@ class AnonymousUsageTracker(object):
                                                            remote_port=remote_port))
 
             response = action = error_msg = ''
-            packet = conn.recv(1024)
+            try:
+                packet = conn.recv(1024)
+            except socket.error as se:
+                logging.error("Error on receive: {}".format(se.message))
+                continue
             if packet == '':
                 break
             struct = json.loads(packet)
