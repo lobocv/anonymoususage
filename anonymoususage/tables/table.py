@@ -62,6 +62,21 @@ class Table(object):
         """
         pass
 
+    def get_first(self, n=1):
+        """
+        Retrieve the first n rows from the table
+        :param n: number of rows to return
+        :return: list of rows
+        """
+        rows = []
+        # Get values from the partial db first
+        if self.tracker.dbcon_master and check_table_exists(self.tracker.dbcon_master, self.name):
+            rows.extend(get_first_row(self.tracker.dbcon_master, self.name, n))
+        # Then add rows from the master if required
+        if len(rows) < n and self.tracker.dbcon_part and check_table_exists(self.tracker.dbcon_part, self.name):
+            rows.extend(get_first_row(self.tracker.dbcon_part, self.name, n))
+        return rows[:n]
+
     def get_last(self, n=1):
         """
         Retrieve the last n rows from the table

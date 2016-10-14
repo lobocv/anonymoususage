@@ -60,7 +60,12 @@ class Statistic(Table):
         :return: The average count value (count / table rows) or `default` if it cannot be calculated.
         """
         try:
-            average = self.count / self.get_number_of_rows()
+            first_row = self.get_first()
+            if first_row:
+                count0 = first_row[0]['Count']
+            else:
+                count0 = 0
+            average = (self.count - count0) / (self.get_number_of_rows() - 1)
         except Exception as e:
             logging.error(e)
             return default
