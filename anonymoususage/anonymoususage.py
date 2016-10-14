@@ -510,26 +510,22 @@ class AnonymousUsageTracker(object):
             if port in self._open_sockets:
                 logging.info('Closing the socket on port {port}'.format(port=port))
                 sock = self._open_sockets[port]['socket']
-                sock.shutdown(socket.SHUT_WR)
-                sock.close()
+                try:
+                    sock.shutdown(socket.SHUT_WR)
+                except socket.error as e:
+                    logging.error("Error while shutting down socket: {}".format(e.message))
+                finally:
+                    sock.close()
                 del self._open_sockets[port]
         logging.info('%d Connections remain open' % len(self._open_sockets))
         return 'Ports %s have been closed. %d ports remain open' % (','.join(map(str, ports)), len(self._open_sockets))
 
     def _close_discovery_socket(self):
         """
-        Bind to our discovery socket and send a command to close communication and shutdown the socket
+        Convenient function for closing the special discovery socket
         """
         logging.info('Closing Discovery port (%d)' % self._discovery_socket_port)
-        info = self._open_sockets[self._discovery_socket_port]
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((info['local_host'], info['local_port']))
-        cmd = json.dumps({'command': 'ACT', 'trackable': '', 'action': 'close_connection', 'args': (info['local_port'],)})
-        sock.send(cmd)
-        try:
-            response = sock.recv(1024)
-        except socket.error:
-            pass
+        self.close_connection(self._discovery_socket_port)
 
     def monitor_socket(self, sock):
         """
@@ -546,26 +542,34 @@ class AnonymousUsageTracker(object):
                 sock = self._open_sockets[local_port]['socket']
                 local_host, local_port = sock.getsockname()
                 logging.info('Looking for connections on port %d' % local_port)
+                sock.settimeout(5)
                 while 1:
-                    sock.settimeout(5)
                     try:
                         conn, (remote_host, remote_port) = sock.accept()
                     except socket.timeout:
                         continue
+                    except socket.error as se:
+                        break
                     else:
                         sock.settimeout(0)
+                        logging.info('Communication opened at %s:%d' % (remote_host, remote_port))
+                        self._open_sockets[local_port].update(dict(connection=conn, remote_host=remote_host,
+                                                                   remote_port=remote_port))
                         break
-                logging.info('Communication opened at %s:%d' % (remote_host, remote_port))
-                self._open_sockets[local_port].update(dict(connection=conn, remote_host=remote_host,
-                                                           remote_port=remote_port))
+
 
             response = action = error_msg = ''
             try:
                 packet = conn.recv(1024)
             except socket.error as se:
-                logging.error("Error on receive: {}".format(se.message))
-                time.sleep(0.1)
-                continue
+                if se.errno == 10035:
+                    logging.error("Error on receive: {}".format(se.message))
+                    time.sleep(0.1)
+                    continue
+                else:
+                    self.close_connection(local_port)
+                    logging.info('Stopping monitoring of port {port}'.format(port=local_port))
+                    break
             if packet == '':
                 break
             struct = json.loads(packet)
@@ -604,6 +608,7 @@ class AnonymousUsageTracker(object):
 
             # If there was an error, send back the error message, otherwise the response
             conn.send(error_msg or response)
+
             logging.info('Request on Port {port}: {packet}'.format(packet=packet, port=remote_port))
             logging.info('Response on Port {port}: {response}'.format(response=(error_msg or response), port=remote_port))
 
