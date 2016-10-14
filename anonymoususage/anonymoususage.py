@@ -564,6 +564,7 @@ class AnonymousUsageTracker(object):
                 packet = conn.recv(1024)
             except socket.error as se:
                 logging.error("Error on receive: {}".format(se.message))
+                time.sleep(0.1)
                 continue
             if packet == '':
                 break
