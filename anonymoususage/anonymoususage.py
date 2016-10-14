@@ -4,6 +4,7 @@ import ConfigParser
 import datetime
 import logging
 import os
+import csv
 import re
 import json
 import sqlite3
@@ -105,6 +106,22 @@ class AnonymousUsageTracker(object):
                 table += diff
             elif isinstance(table, (State, Sequence)):
                 table.insert(value)
+
+    @property
+    def states(self):
+        return [t for t in self._tables.itervalues() if type(t) is State]
+
+    @property
+    def statistics(self):
+        return [t for t in self._tables.itervalues() if type(t) is Statistic]
+
+    @property
+    def timers(self):
+        return [t for t in self._tables.itervalues() if type(t) is Timer]
+
+    @property
+    def sequences(self):
+        return [t for t in self._tables.itervalues() if type(t) is Sequence]
 
     def close(self):
         self.dbcon_part.commit()
@@ -281,6 +298,52 @@ class AnonymousUsageTracker(object):
             self['__submissions__'].delete_last()
             self.stop_watcher()
             return False
+
+    def to_file(self, path, precision='%.2g'):
+        """
+        Create a CSV report of the trackables
+        :param path: path to file
+        :param precision: numeric string formatter
+        """
+        table_info = self.get_table_info()
+
+        def dump_rows(rows):
+            if len(rows) > 1:
+                for row in rows:
+                    csv_writer.writerow(row)
+                csv_writer.writerow([])
+
+        with open(path, 'wb') as _f:
+            csv_writer = csv.writer(_f)
+
+            state_rows = [['States']]
+            state_rows += [['Name', 'Description', 'State', 'Number of Changes']]
+            for state in self.states:
+                state_rows.append([state.name, table_info[state.name]['description'], state.state, state.count])
+            dump_rows(state_rows)
+
+            stat_rows = [['Statistics']]
+            stat_rows += [['Name', 'Description', 'Total', 'Average']]
+            for stat in self.statistics:
+                if stat.name == '__submissions__':
+                    continue
+                stat_rows.append([stat.name, table_info[stat.name]['description'], stat.count, stat.get_average(0)])
+                dump_rows(stat_rows)
+
+            timer_rows = [['Timers']]
+            timer_rows += [['Name', 'Description', 'Average Seconds', 'Total Seconds', 'Total Minutes', 'Total Hours', 'Total Days']]
+            for timer in self.timers:
+                timer_rows.append([timer.name, table_info[timer.name]['description'],
+                                   precision % timer.get_average(0), precision % timer.total_seconds, precision % timer.total_minutes,
+                                   precision % timer.total_hours, precision % timer.total_days])
+                dump_rows(timer_rows)
+
+            sequence_rows = [['Sequences']]
+            sequence_rows += [['Name', 'Description', 'Sequence', 'Number of Completions']]
+            for sequence in self.sequences:
+                checkpoints = '-->'.join(map(str, sequence.get_checkpoints()))
+                sequence_rows.append([sequence.name, table_info[sequence.name]['description'], checkpoints, sequence.count])
+                dump_rows(sequence_rows)
 
     @classmethod
     def load_from_configuration(cls, path, uuid, **kwargs):
@@ -473,6 +536,7 @@ class AnonymousUsageTracker(object):
         Start listening for and monitor inter-process communication on a socket
         :param sock: Socket
         """
+
         sock.listen(1)
         local_host, local_port = sock.getsockname()
 
