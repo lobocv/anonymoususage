@@ -6,7 +6,7 @@ import socket
 from threading import Thread
 
 def run(port, cmds):
-    HOST = ''
+    HOST = '127.0.0.1'
     DISCOVER_PORT = 1213
 
     def communicate(sock, cmd):
