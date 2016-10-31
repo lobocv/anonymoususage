@@ -1,8 +1,8 @@
 __author__ = 'calvin'
 
 import datetime
-import sqlite3
 import logging
+import sqlite3
 
 from .table import Table
 from ..tools import insert_row
@@ -22,6 +22,10 @@ class Statistic(Table):
                     'SET': ('count',),
                     'ACT': ('increment', 'decrement')}
 
+    def __init__(self, *args, **kwargs):
+        super(Statistic, self).__init__(*args, **kwargs)
+        self.startup_value = self.count
+
     def __add__(self, i):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         count = self.count + i
@@ -37,6 +41,10 @@ class Statistic(Table):
             logging.debug('{s.name} count set to {s.count}'.format(s=self))
 
         return self
+
+    @property
+    def difference_from_startup(self):
+        return self.startup_value - self.count
 
     def __sub__(self, i):
         self += -i
