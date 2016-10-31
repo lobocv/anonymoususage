@@ -56,6 +56,17 @@ class Timer(Statistic):
         logger.debug('AnonymousUsage: Stopping %s timer' % self.name)
 
     @property
+    def elapsed_time(self):
+        """
+        Return the amount of time that has elapsed since the timer was started.
+        Only works if the timer is active.
+        """
+        if self._start_time:
+            return (datetime.datetime.now() - self._start_time).total_seconds()
+        else:
+            return 0
+
+    @property
     def total_minutes(self):
         return self.count / 60.
 
