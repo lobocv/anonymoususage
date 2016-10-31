@@ -563,7 +563,6 @@ class AnonymousUsageTracker(object):
                 packet = conn.recv(1024)
             except socket.error as se:
                 if se.errno == 10035:
-                    logging.error("Error on receive: {}".format(se.message))
                     time.sleep(0.1)
                     continue
                 else:
