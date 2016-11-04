@@ -1,5 +1,6 @@
 import os
 import logging
+import logging.handlers
 import argparse
 
 from anonymoususage import AnonymousUsageTracker
@@ -38,7 +39,10 @@ __help__ = \
 
 def run_server(uuid, host, port, db_path, config=None):
 
-    logging.basicConfig(filename=os.path.splitext(db_path)[0] + '.log', level=logging.DEBUG)
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    handler = logging.handlers.RotatingFileHandler(os.path.splitext(db_path)[0] + '.log', maxBytes=1024, backupCount=5)
+    logger.addHandler(handler)
 
     logging.info('Creating Usage Tracker..')
     if config:
