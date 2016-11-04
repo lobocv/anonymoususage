@@ -41,7 +41,8 @@ def run_server(uuid, host, port, db_path, config=None):
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    handler = logging.handlers.RotatingFileHandler(os.path.splitext(db_path)[0] + '.log', maxBytes=1024, backupCount=5)
+    handler = logging.handlers.RotatingFileHandler(os.path.splitext(db_path)[0] + '.log', maxBytes=1000000,
+                                                   backupCount=5)
     logger.addHandler(handler)
 
     logging.info('Creating Usage Tracker..')
