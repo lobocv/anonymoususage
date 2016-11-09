@@ -73,12 +73,48 @@ class StateView(TrackableView):
 
 
 class TimerView(TrackableView):
-    pass
+
+    CMD_GET = ('total_seconds', 'total_minutes', 'total_hours', 'total_days')
+    CMD_PUT = ('start_timer', 'pause_timer', 'resume_timer', 'stop_timer')
+    _PUT_RESPONSES = {'start_timer': 'Timer trackable "{name}" has been started',
+                      'pause_timer': 'Timer trackable "{name}" has been paused',
+                      'resume_timer': 'Timer trackable "{name}" has been resumed',
+                      'stop_timer': 'Timer trackable "{name}" has been stopped. Timer was running for {dt:.1f} seconds',
+    }
+    @cherrypy.tools.json_out()
+    def GET(self, name=None, attribute='total_seconds'):
+        if name is None:
+            return {s.name: {attr: getattr(s, attr) for attr in self.CMD_GET} for s in self.tracker.states}
+        else:
+            trackable = self.tracker[name]
+            if trackable:
+                if attribute in self.CMD_GET:
+                    return {attribute: getattr(trackable, attribute)}
+            else:
+                raise cherrypy.HTTPError(404, 'No timer trackable by the name of %s' % name)
+
+    def PUT(self, name, action, *args):
+        if self.tracker[name]:
+            if action in self.CMD_PUT:
+                dt = getattr(self.tracker[name], action)()
+                return self._PUT_RESPONSES[action].format(name=name, dt=dt)
+            else:
+                raise cherrypy.HTTPError(404, 'Invalid command on timer. Use one of start_timer, stop_timer,'
+                                              'pause_timer, resume_timer ')
+        else:
+            raise cherrypy.HTTPError(404, 'No timer trackable by the name of %s' % name)
+
+    def POST(self, name, description='', max_rows=None, **kwargs):
+        try:
+            self.tracker.track_time(name, str(description), max_rows, **kwargs)
+        except TableConflictError:
+            raise cherrypy.HTTPError(400, 'Timer by the name of "%s" already exists' % name)
+        else:
+            return 'Timer by the name of "%s" has been created' % name
 
 
 class SequenceView(TrackableView):
     pass
-
 
 class UsageTrackerServer(AnonymousUsageTracker):
 

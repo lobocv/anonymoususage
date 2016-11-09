@@ -50,13 +50,15 @@ class Timer(Statistic):
             timedelta = datetime.datetime.now() - self._start_time
             self._delta_seconds += timedelta.total_seconds()
         self += self._delta_seconds
+        delta_seconds = self._delta_seconds
         self._delta_seconds = 0
         self._start_time = None
         self.paused = False
         logger.debug('AnonymousUsage: Stopping %s timer' % self.name)
+        return delta_seconds
 
     @property
-    def elapsed_time(self):
+    def elapsed_time_s(self):
         """
         Return the amount of time that has elapsed since the timer was started.
         Only works if the timer is active.
