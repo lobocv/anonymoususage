@@ -2,10 +2,7 @@ import os
 import logging
 import logging.handlers
 import argparse
-
-from anonymoususage import AnonymousUsageTracker
-from anonymoususage.tables import TRACKABLES
-from anonymoususage.api import COMMANDS
+from anonymoususage.api import UsageTrackerServer
 
 __help__ = \
     '''
@@ -23,21 +20,11 @@ __help__ = \
 
     standalone 'USER100049' localhost 1213 ./my_statistics.db
 
-    ============================================================================
-    =                                  API                                     =
-    ============================================================================
-    {API}
-
-    ============================================================================
-    =                             TRACKABLE API                                =
-    ============================================================================
-
-    {TRACKABLES}
-    '''.format(API='\n'.join(c.__doc__ for c in COMMANDS),
-               TRACKABLES='\n'.join(t.api_help() for t in TRACKABLES))
+    '''
 
 
 def run_server(uuid, host, port, db_path, config=None):
+
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -47,20 +34,18 @@ def run_server(uuid, host, port, db_path, config=None):
 
     logging.info('Creating Usage Tracker..')
     if config:
-        usage_tracker = AnonymousUsageTracker.load_from_configuration(config, uuid, filepath=db_path)
+        server = UsageTrackerServer.load_from_configuration(config, uuid, filepath=db_path)
     else:
-        usage_tracker = AnonymousUsageTracker(uuid=uuid,
-                                              filepath=db_path)
+        server = UsageTrackerServer(uuid=uuid, filepath=db_path)
 
     logging.info('Opening connection..')
     if host in ('localhost', '127.0.0.1'):
         host = ''
 
-    sock = usage_tracker.open_socket(host, port)
 
     logging.info('Starting tracker..')
-    usage_tracker.monitor_socket(sock)
 
+    server.run()
     logging.info('Stopping tracker..')
 
 

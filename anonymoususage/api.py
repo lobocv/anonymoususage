@@ -1,74 +1,88 @@
-__author__ = 'calvin'
+import cherrypy
+from exceptions import *
+from anonymoususage import AnonymousUsageTracker
 
-import collections
+class TrackableView():
+    exposed = True
 
-
-def get_(obj, attr):
-    """
-    API call to a GET command.
-    --------------------------
-    GET Usage:
-        command: 'GET'
-        trackable: Trackable name or '' for the tracker itself
-        attribute:  Attribute to get
-
-    For example, the following query returns the statistic count of the 'grids_collected' trackable
-        {'command': 'GET', 'trackable': 'grids_collected', 'attribute': 'count'}
-    """
-    if attr in obj.IPC_COMMANDS['GET']:
-        value = getattr(obj, attr)
-    else:
-        raise ValueError('GET command is not available for %s' % attr)
-
-    # Convert the response to string representation
-    if isinstance(value, basestring):
-        response = value
-    elif isinstance(value, collections.Iterable):
-        response = ','.join(map(str, value))
-    else:
-        response = str(value)
-
-    return response
+    def __init__(self):
+        self._type = self.__class__.__name__.strip('_').lower()
 
 
-def set_(obj, attr, value):
-    """
-    API call to a SET command.
-    --------------------------
-    SET Usage:
-        command: 'SET'
-        trackable: Trackable name or '' for the tracker itself
-        attribute:  Attribute to set
-        value:  Value to assign
+class StatisticView(TrackableView):
 
-    For example, the following query sets the statistic count of the 'grids_collected' trackable to 50
-        {'command': 'SET', 'trackable': 'grids_collected', 'attribute': 'count', 'value': 50}
-    """
-    if attr in obj.IPC_COMMANDS['SET']:
-        setattr(obj, attr, value)
-        return '{} set to {}'.format(attr, value)
-    else:
-        raise ValueError('SET command is not available for %s' % attr)
+    @cherrypy.tools.json_out()
+    def GET(self, name=None):
+        if name is None:
+            return {s.name: s.count for s in self.tracker.statistics}
+        else:
+            trackable = self.tracker[name]
+            if trackable:
+                return {'count': trackable.count}
+            else:
+                raise cherrypy.HTTPError(404, 'No %s by the name of %s' % (self._type, name))
 
+    def PUT(self, name, action, *args):
+        if self.tracker[name]:
+            if action == 'set':
+                self.tracker[name] = float(args[0])
+            elif action == 'increment':
+                self.tracker[name] += 1 if len(args) == 0 else args[0]
+            elif action == 'decrement':
+                self.tracker[name] -= 1 if len(args) == 0 else args[0]
+            return '%s set to %g' % (name, self.tracker[name].count)
+        else:
+            raise cherrypy.HTTPError(404, 'No %s by the name of %s' % (self._type, name))
 
-def act_(obj, action, *args):
-    """
-    API call to a ACT command.
-    --------------------------
-    ACT Usage:
-        command: 'ACT'
-        trackable: Trackable name or '' for the tracker itself
-        action:  Action to call
-        args:  List of arguments to the call
-
-    For example, the following query starts the 'run_time' Timer
-        {'command': 'ACT', 'trackable': 'run_time', 'action': 'start_timer', 'args': ()},
-    """
-    if action in obj.IPC_COMMANDS['ACT']:
-        response = getattr(obj, action)(*args)
-        return response or 'Call to %s has been processed' % action
-    else:
-        raise ValueError('ACT command is not available for %s' % action)
+    def POST(self, name, description='', max_rows=None):
+        try:
+            self.tracker.track_statistic(name, str(description), max_rows)
+        except TableConflictError:
+            raise cherrypy.HTTPError(400, 'Statistic by the name of "%s" already exists' % name)
+        else:
+            return 'Statistic by the name of "%s" has been created' % name
 
 
-COMMANDS = [get_, set_, act_]
+class StateView(TrackableView):
+    pass
+
+
+class TimerView(TrackableView):
+    pass
+
+
+class SequenceView(TrackableView):
+    pass
+
+
+class UsageTrackerServer(AnonymousUsageTracker):
+
+    def __init__(self, *args, **kwargs):
+        super(UsageTrackerServer, self).__init__(*args, **kwargs)
+        TrackableView.tracker = self
+
+    @cherrypy.expose
+    def index(self):
+        return 'Nothing to see here'
+
+    def run(self):
+        cherrypy.tree.mount(self, '/')
+
+        cherrypy.tree.mount(StatisticView(),
+                            '/statistics',
+                            {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        cherrypy.tree.mount(StateView(),
+                            '/states',
+                            {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        cherrypy.tree.mount(TimerView(),
+                            '/timers',
+                            {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        cherrypy.tree.mount(SequenceView(),
+                            '/sequences',
+                            {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        cherrypy.engine.start()
+        cherrypy.engine.block()
