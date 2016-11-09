@@ -2,11 +2,10 @@ import cherrypy
 from exceptions import *
 from anonymoususage import AnonymousUsageTracker
 
+
 class TrackableView():
     exposed = True
-
-    def __init__(self):
-        self._type = self.__class__.__name__.strip('_').lower()
+    tracker = None
 
 
 class StatisticView(TrackableView):
@@ -20,19 +19,19 @@ class StatisticView(TrackableView):
             if trackable:
                 return {'count': trackable.count}
             else:
-                raise cherrypy.HTTPError(404, 'No %s by the name of %s' % (self._type, name))
+                raise cherrypy.HTTPError(404, 'No statistic trackable by the name of %s' % name)
 
     def PUT(self, name, action, *args):
         if self.tracker[name]:
             if action == 'set':
                 self.tracker[name] = float(args[0])
             elif action == 'increment':
-                self.tracker[name] += 1 if len(args) == 0 else args[0]
+                self.tracker[name] += 1 if len(args) == 0 else float(args[0])
             elif action == 'decrement':
-                self.tracker[name] -= 1 if len(args) == 0 else args[0]
-            return '%s set to %g' % (name, self.tracker[name].count)
+                self.tracker[name] -= 1 if len(args) == 0 else float(args[0])
+            return 'Statistic trackable "%s" set to %g' % (name, self.tracker[name].count)
         else:
-            raise cherrypy.HTTPError(404, 'No %s by the name of %s' % (self._type, name))
+            raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
 
     def POST(self, name, description='', max_rows=None):
         try:
@@ -44,7 +43,33 @@ class StatisticView(TrackableView):
 
 
 class StateView(TrackableView):
-    pass
+
+    @cherrypy.tools.json_out()
+    def GET(self, name=None):
+        if name is None:
+            return {s.name: {'count': s.count, 'state': s.state} for s in self.tracker.states}
+        else:
+            trackable = self.tracker[name]
+            if trackable:
+                return {'state': trackable.state, 'count': trackable.count}
+            else:
+                raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
+
+    def PUT(self, name, action, *args):
+        if self.tracker[name]:
+            if action == 'set':
+                self.tracker[name] = None if args[0].lower() == 'none' else args[0]
+            return 'State trackable "%s" set to %s' % (name, self.tracker[name].state)
+        else:
+            raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
+
+    def POST(self, name, value, description='', max_rows=None, **kwargs):
+        try:
+            self.tracker.track_state(name, str(value), str(description), max_rows, **kwargs)
+        except TableConflictError:
+            raise cherrypy.HTTPError(400, 'State by the name of "%s" already exists' % name)
+        else:
+            return 'State by the name of "%s" has been created' % name
 
 
 class TimerView(TrackableView):
