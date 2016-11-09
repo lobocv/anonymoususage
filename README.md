@@ -2,7 +2,9 @@ AnonymousUsage
 ==============
 
 Anonymously track user usage patterns and statistics. The goal of this library is to help developers get a broader 
-understanding of their applications usage.
+understanding of their applications usage. Each users usage stats are stored locally for them to use and can also
+be uploaded to a web app that consolidates and manages all the data (see https://github.com/lobocv/crashreporter_hq).
+On crash reporter HQ you can create custom usage plots from all users that have submitted statistics.
 
 
 
