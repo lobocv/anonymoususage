@@ -202,6 +202,11 @@ class UsageTrackerServer(AnonymousUsageTracker):
     def index(self):
         return 'Nothing to see here'
 
+    @cherrypy.expose
+    def setup_hq(self, host, api_key):
+        super(UsageTrackerServer, self).setup_hq(host, api_key)
+        return 'HQ API key received.'
+
     def run(self, host, port, username=None, password=None):
         if username is not None and password is not None:
             cherrypy.config.update({'tools.auth_digest.on': True,
