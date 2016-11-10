@@ -56,6 +56,9 @@ class Sequence(Table):
         else:
             raise InvalidCheckpointError(checkpoint)
 
+    def set(self, checkpoint):
+        self.insert(checkpoint)
+
     @property
     def checkpoint(self):
         try:

@@ -49,10 +49,7 @@ class State(Table):
         self.insert(value)
 
     def set(self, value):
-        if isinstance(value, basestring):
-            self.state = None if value.lower() == 'none' else value
-        else:
-            self.state = value
+        self.state = value
         return self.state
 
     def insert(self, value):

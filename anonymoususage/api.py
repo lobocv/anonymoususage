@@ -10,15 +10,26 @@ class TrackableView(object):
     def __init__(self):
         self.trackable_class = self.__class__.__name__.replace('View', '')
 
+    def decode_PUT_input(self, action, *string_inputs):
+        """
+        With this function you can interpret the string input sent to the PUT() function so that it can
+        be passed to the underlying PUT functions.
+        :param action: PUT action
+        :param string_inputs: request arguments (*args)
+        :return: interpreted arguments that get passed to PUT as *args (doesn't have to be strings)
+        """
+        return string_inputs
+
     @property
     def all_trackables(self):
         attr = self.trackable_class.lower() + 's'
         return getattr(self.tracker, attr)
 
     def PUT(self, name, action, *args):
+        _args = self.decode_PUT_input(action, *args)
         if self.tracker[name]:
             if action in self.CMD_PUT:
-                result = getattr(self.tracker[name], action)(*args)
+                result = getattr(self.tracker[name], action)(*_args)
                 return self.RESPONSES_PUT[action].format(result, name=name)
             else:
                 raise cherrypy.HTTPError(404, 'Invalid command on {cls}. Use one of '
@@ -65,6 +76,18 @@ class StateView(TrackableView):
     CMD_GET = ('state', 'count')
     CMD_PUT = ('set', )
     RESPONSES_PUT = {'set': 'State trackable "{name}" set to {}'}
+
+    def decode_PUT_input(self, action, *string_inputs):
+        if action == 'set':
+            # Convert string 'none' into None value
+            value = string_inputs[0]
+            if isinstance(value, basestring):
+                state = None if value.lower() == 'none' else value
+            else:
+                state = value
+            return (state, )
+        else:
+            return super(StateView, self).decode_PUT_input(action, *string_inputs)
 
     def POST(self, name, value, description='', max_rows=None, **kwargs):
         try:
