@@ -42,13 +42,12 @@ def run_server(uuid, host, port, db_path, config=None):
         server = UsageTrackerServer(uuid=uuid, filepath=db_path)
 
     logging.info('Opening connection..')
-    if host in ('localhost', '127.0.0.1'):
-        host = ''
-
+    if host == 'localhost':
+        host = '127.0.0.1'
 
     logging.info('Starting tracker..')
 
-    server.run()
+    server.run(host, port)
     logging.info('Stopping tracker..')
 
 

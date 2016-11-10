@@ -5,7 +5,7 @@ import json
 import time
 import requests
 
-host = 'http://127.0.0.1:8080'
+host = 'http://127.0.0.1:1213'
 STATISTIC_URL = host + "/statistics"
 STATE_URL = host + "/states"
 TIMER_URL = host + "/timers"

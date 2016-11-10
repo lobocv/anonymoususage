@@ -200,7 +200,7 @@ class UsageTrackerServer(AnonymousUsageTracker):
     def index(self):
         return 'Nothing to see here'
 
-    def run(self):
+    def run(self, host, port):
         cherrypy.tree.mount(self, '/')
 
         cherrypy.tree.mount(StatisticView(),
@@ -218,6 +218,9 @@ class UsageTrackerServer(AnonymousUsageTracker):
         cherrypy.tree.mount(SequenceView(),
                             '/sequences',
                             {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
+
+        cherrypy.server.socket_host = host
+        cherrypy.server.socket_port = port
 
         cherrypy.engine.start()
         cherrypy.engine.block()
