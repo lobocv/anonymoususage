@@ -48,8 +48,11 @@ class State(Table):
     def state(self, value):
         self.insert(value)
 
-    def change(self, value):
-        self.state = value
+    def set(self, value):
+        if isinstance(value, basestring):
+            self.state = None if value.lower() == 'none' else value
+        else:
+            self.state = value
         return self.state
 
     def insert(self, value):
