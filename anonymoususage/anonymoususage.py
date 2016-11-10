@@ -26,11 +26,6 @@ class AnonymousUsageTracker(object):
     HQ_DEFAULT_TIMEOUT = 10
     MAX_ROWS_PER_TABLE = 1000
 
-    IPC_COMMANDS = {'GET': (),
-                    'SET': (),
-                    'ACT': ('track_statistic', 'track_state', 'track_time', 'track_sequence', 'submit_statistics',
-                            'enable', 'disable', 'get_table_info', 'new_connection', 'close_connection')}
-
     def __init__(self, uuid, filepath, submit_interval_s=0, check_interval_s=0, enabled=True,
                  application_name='', application_version='', debug=False):
         """

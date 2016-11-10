@@ -2,30 +2,33 @@ import os
 import logging
 import logging.handlers
 import argparse
-from anonymoususage.api import UsageTrackerServer
+from anonymoususage.api import UsageTrackerServer, Views
 
 __help__ = \
     '''
-    This application creates and starts a new anonymous usage tracker. Use the API to communicate with
-    the tracker through a socket to setup and track statistics in your application.
+This application creates and starts a new anonymous usage tracker. Use the API to communicate with
+the tracker through a socket to setup and track statistics in your application.
 
 
-    Call Arguments:
-         UUID        - Unique identifier for the user being tracked (string)
-         HOST        - Host address to open the socket under (use 'localhost' or '127.0.0.1' for local)
-         PORT        - Port to open the socket under
-         FILEPATH    - File path to write the database
+Call Arguments:
+     UUID        - Unique identifier for the user being tracked (string)
+     HOST        - Host address to open the socket under (use 'localhost' or '127.0.0.1' for local)
+     PORT        - Port to open the socket under
+     FILEPATH    - File path to write the database
 
-    Example
+Example
 
-    standalone 'USER100049' localhost 1213 ./my_statistics.db
+standalone 'USER100049' localhost 1213 ./my_statistics.db
 
-    '''
+                API
+===============================
+{}
+    '''.format('\n\n'.join(v.api_help() for v in Views))
 
 
 def run_server(uuid, host, port, db_path, config=None):
 
-
+    print __help__
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     handler = logging.handlers.RotatingFileHandler(os.path.splitext(db_path)[0] + '.log', maxBytes=1000000,

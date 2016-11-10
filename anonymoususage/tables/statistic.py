@@ -18,9 +18,6 @@ class Statistic(Table):
         tracker.track_statistic(stat_name)
         tracker[stat_name] += 1
     """
-    IPC_COMMANDS = {'GET': ('count',),
-                    'SET': ('count',),
-                    'ACT': ('increment', 'decrement')}
 
     def __init__(self, *args, **kwargs):
         super(Statistic, self).__init__(*args, **kwargs)

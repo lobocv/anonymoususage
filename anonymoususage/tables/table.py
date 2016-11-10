@@ -12,9 +12,6 @@ logger = logging.getLogger('AnonymousUsage')
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
     table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
-    IPC_COMMANDS = {'GET': ('count',),
-                    'SET': (),
-                    'ACT': ()}
     lock = RLock()
 
     def __init__(self, name, tracker, max_rows):
@@ -114,14 +111,3 @@ class Table(object):
             return row[0]['Count']
         else:
             return 0
-
-    @classmethod
-    def api_help(cls):
-        return "{cls}\n" \
-               "---------\n" \
-               "GET : {get}\n" \
-               "SET : {set}\n" \
-               "ACT : {act}\n".format(cls=cls.__name__,
-                                       get=','.join(cls.IPC_COMMANDS['GET']),
-                                       set=','.join(cls.IPC_COMMANDS['SET']),
-                                       act=','.join(cls.IPC_COMMANDS['ACT']))

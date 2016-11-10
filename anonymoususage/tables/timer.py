@@ -16,9 +16,6 @@ class Timer(Statistic):
     started and stopped in order to record the time it takes for certain tasks to be completed.
 
     """
-    IPC_COMMANDS = {'GET': ('count', 'total_days', 'total_hours', 'total_minutes', 'total_seconds'),
-                    'SET': (),
-                    'ACT': ('start_timer', 'pause_timer', 'resume_timer', 'stop_timer')}
 
     def __init__(self, name, tracker, *args, **kwargs):
         super(Timer, self).__init__(name, tracker, *args, **kwargs)

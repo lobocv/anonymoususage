@@ -55,6 +55,12 @@ class TrackableView(object):
                 raise cherrypy.HTTPError(404, 'No {cls} trackable by the name of'
                                               ' {name}'.format(cls=self.trackable_class.lower(), name=name))
 
+    @classmethod
+    def api_help(cls):
+        return "{cls}\n" \
+               "---------\n" \
+               "{api}".format(cls=cls.__name__.replace('View', ''), api=cls.API_HELP)
+
 
 class StatisticView(TrackableView):
     CMD_GET = ('count', )
@@ -62,6 +68,14 @@ class StatisticView(TrackableView):
     RESPONSES_PUT = {'set'      : 'Statistic trackable {name} count set to {}',
                      'increment': 'Statistic trackable {name} count incremented to {}',
                      'decrement': 'Statistic trackable {name} count decremented to {}'}
+    API_HELP = """
+        GET:  statistic/ \n
+              statistic/{trackable_name}/{?attribute} \n
+        PUT:  statistic/{trackable_name}/set/{value} \n
+              statistic/{trackable_name}/increment/{?value} \n
+              statistic/{trackable_name}/decrement/{?value} \n
+        POST: statistic/{trackable_name}/{?description}/{?max_rows} \n
+               """
 
     def POST(self, name, description='', max_rows=None):
         try:
@@ -76,6 +90,13 @@ class StateView(TrackableView):
     CMD_GET = ('state', 'count')
     CMD_PUT = ('set', )
     RESPONSES_PUT = {'set': 'State trackable "{name}" set to {}'}
+
+    API_HELP = """
+        GET:  state/ \n
+              state/{trackable_name}/{?attribute} \n
+        PUT:  state/{trackable_name}/set/{value} \n
+        POST: state/{trackable_name}/{?description}/{?max_rows} \n
+        """
 
     def decode_PUT_input(self, action, *string_inputs):
         if action == 'set':
@@ -109,6 +130,16 @@ class TimerView(TrackableView):
                                      'running for {:.1f} seconds'
                      }
 
+    API_HELP = """
+        GET:  timer/ \n
+              timer/{trackable_name}/{?attribute} \n
+        PUT:  timer/{trackable_name}/start_timer/{value} \n
+              timer/{trackable_name}/stop_timer/{?value} \n
+              timer/{trackable_name}/pause_timer/{?value} \n
+              timer/{trackable_name}/resume_timer/{?value} \n
+        POST: timer/{trackable_name}/{?description}/{?max_rows} \n
+        """
+
     def POST(self, name, description='', max_rows=None, **kwargs):
         try:
             self.tracker.track_time(name, str(description), max_rows, **kwargs)
@@ -120,12 +151,22 @@ class TimerView(TrackableView):
 
 class SequenceView(TrackableView):
     CMD_GET       = {'count', 'sequence', 'checkpoint', 'checkpoints'}
-    CMD_PUT      = {'set', 'get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint'}
+    CMD_PUT       = {'set', 'get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint'}
     RESPONSES_PUT = {'set'                  : 'Sequence trackable "{name}" checkpoint set to "{}"',
                      'remove_checkpoint'    : 'Timer trackable "{name}"\'s last checkpoint {} has been removed',
                      'advance_to_checkpoint': 'Sequence trackable "{name}" has been advanced to checkpoint {}',
                      'clear_checkpoints'    : 'All checkpoints for sequence trackable "{name}" have been cleared.'
                      }
+
+    API_HELP = """
+        GET:  sequence/ \n
+              sequence/{trackable_name}/{?attribute} \n
+        PUT:  sequence/{trackable_name}/set/{value} \n
+              sequence/{trackable_name}/remove_checkpoint \n
+              sequence/{trackable_name}/advance_to_checkpoint/{?value} \n
+              sequence/{trackable_name}/clear_checkpoints \n
+        POST: sequence/{trackable_name}/{checkpoints}/{?description}/{?max_rows} \n
+        """
 
     def PUT(self, name, action, *args):
         try:
@@ -180,3 +221,6 @@ class UsageTrackerServer(AnonymousUsageTracker):
 
         cherrypy.engine.start()
         cherrypy.engine.block()
+
+
+Views = [StatisticView, StateView, TimerView, SequenceView]

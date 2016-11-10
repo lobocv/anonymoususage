@@ -25,9 +25,6 @@ class Sequence(Table):
         tracker[stat_name] = 'third'    # Third check point reached. At this point the database is updated.
 
     """
-    IPC_COMMANDS = {'GET': ('count', 'sequence', 'checkpoint'),
-                    'SET': ('count', 'checkpoint'),
-                    'ACT': ('get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint')}
 
     def __init__(self, name, tracker, checkpoints, *args, **kwargs):
         super(Sequence, self).__init__(name, tracker, *args, **kwargs)
