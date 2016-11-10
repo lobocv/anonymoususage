@@ -9,27 +9,35 @@ class TrackableView():
 
 
 class StatisticView(TrackableView):
+    CMD_GET = ('count', )
+    CMD_PUT = ('set', 'increment', 'decrement')
+    RESPONSES_PUT = {'set'      : 'Statistic trackable {name} count set to {count}',
+                     'increment': 'Statistic trackable {name} count incremented to {count}',
+                     'decrement': 'Statistic trackable {name} count decremented to {count}'}
 
     @cherrypy.tools.json_out()
-    def GET(self, name=None):
+    def GET(self, name=None, attribute=None):
         if name is None:
-            return {s.name: s.count for s in self.tracker.statistics}
+            return {s.name: {attr: getattr(s, attr) for attr in self.CMD_GET} for s in self.tracker.statistics}
         else:
             trackable = self.tracker[name]
             if trackable:
-                return {'count': trackable.count}
+                if attribute in self.CMD_GET:
+                    return {attribute: getattr(trackable, attribute)}
+                elif attribute is None:
+                    return {attr: getattr(trackable, attr) for attr in self.CMD_GET}
             else:
                 raise cherrypy.HTTPError(404, 'No statistic trackable by the name of %s' % name)
 
     def PUT(self, name, action, *args):
         if self.tracker[name]:
-            if action == 'set':
-                self.tracker[name] = float(args[0])
-            elif action == 'increment':
-                self.tracker[name] += 1 if len(args) == 0 else float(args[0])
-            elif action == 'decrement':
-                self.tracker[name] -= 1 if len(args) == 0 else float(args[0])
-            return 'Statistic trackable "%s" set to %g' % (name, self.tracker[name].count)
+            if action in self.CMD_PUT:
+                count = getattr(self.tracker[name], action)(*args)
+                return self.RESPONSES_PUT[action].format(name=name, count=count)
+            else:
+                raise cherrypy.HTTPError(404, 'Invalid command on timer. '
+                                              'Use one of %s' % ', '.join(self.RESPONSES_PUT.keys()))
+
         else:
             raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
 
@@ -43,23 +51,35 @@ class StatisticView(TrackableView):
 
 
 class StateView(TrackableView):
+    CMD_GET = ('state', 'count')
+    CMD_PUT = ('set', )
+    RESPONSES_PUT = {'set': 'State trackable "{name}" set to {value}'}
 
     @cherrypy.tools.json_out()
-    def GET(self, name=None):
+    def GET(self, name=None, attribute=None):
         if name is None:
-            return {s.name: {'count': s.count, 'state': s.state} for s in self.tracker.states}
+            return {s.name: {attr: getattr(s, attr) for attr in self.CMD_GET} for s in self.tracker.states}
         else:
             trackable = self.tracker[name]
             if trackable:
-                return {'state': trackable.state, 'count': trackable.count}
+                if attribute in self.CMD_GET:
+                    return {attribute: getattr(trackable, attribute)}
+                elif attribute is None:
+                    return {attr: getattr(trackable, attr) for attr in self.CMD_GET}
+                else:
+                    raise cherrypy.HTTPError(404, 'No attribute by the name of %s' % attribute)
             else:
                 raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
 
     def PUT(self, name, action, *args):
         if self.tracker[name]:
-            if action == 'set':
-                self.tracker[name] = None if args[0].lower() == 'none' else args[0]
-            return 'State trackable "%s" set to %s' % (name, self.tracker[name].state)
+            if action in self.CMD_PUT:
+                value = getattr(self.tracker[name], action)(*args)
+                return self.RESPONSES_PUT[action].format(name=name, value=value)
+            else:
+                raise cherrypy.HTTPError(404, 'Invalid command on state. '
+                                              'Use one of %s' % ', '.join(self.RESPONSES_PUT.keys()))
+
         else:
             raise cherrypy.HTTPError(404, 'No state trackable by the name of %s' % name)
 
@@ -76,13 +96,15 @@ class TimerView(TrackableView):
 
     CMD_GET = ('total_seconds', 'total_minutes', 'total_hours', 'total_days')
     CMD_PUT = ('start_timer', 'pause_timer', 'resume_timer', 'stop_timer')
-    RESPONSES_PUT = {'start_timer': 'Timer trackable "{name}" has been started',
-                      'pause_timer': 'Timer trackable "{name}" has been paused',
-                      'resume_timer': 'Timer trackable "{name}" has been resumed',
-                      'stop_timer': 'Timer trackable "{name}" has been stopped. Timer was running for {dt:.1f} seconds',
+    RESPONSES_PUT = {'start_timer' : 'Timer trackable "{name}" has been started',
+                     'pause_timer' : 'Timer trackable "{name}" has been paused',
+                     'resume_timer': 'Timer trackable "{name}" has been resumed',
+                     'stop_timer'  : 'Timer trackable "{name}" has been stopped. Timer was '
+                                     'running for {dt:.1f} seconds'
                      }
+
     @cherrypy.tools.json_out()
-    def GET(self, name=None, attribute='total_seconds'):
+    def GET(self, name=None, attribute=None):
         if name is None:
             return {s.name: {attr: getattr(s, attr) for attr in self.CMD_GET} for s in self.tracker.states}
         else:
@@ -90,17 +112,21 @@ class TimerView(TrackableView):
             if trackable:
                 if attribute in self.CMD_GET:
                     return {attribute: getattr(trackable, attribute)}
+                elif attribute is None:
+                    return {attr: getattr(trackable, attr) for attr in self.CMD_GET}
+                else:
+                    raise cherrypy.HTTPError(404, 'No attribute by the name of %s' % attribute)
             else:
                 raise cherrypy.HTTPError(404, 'No timer trackable by the name of %s' % name)
 
     def PUT(self, name, action, *args):
         if self.tracker[name]:
             if action in self.CMD_PUT:
-                dt = getattr(self.tracker[name], action)()
+                dt = getattr(self.tracker[name], action)(*args)
                 return self.RESPONSES_PUT[action].format(name=name, dt=dt)
             else:
-                raise cherrypy.HTTPError(404, 'Invalid command on timer. Use one of start_timer, stop_timer,'
-                                              'pause_timer, resume_timer ')
+                raise cherrypy.HTTPError(404, 'Invalid command on timer. '
+                                              'Use one of %s' % ', '.join(self.RESPONSES_PUT.keys()))
         else:
             raise cherrypy.HTTPError(404, 'No timer trackable by the name of %s' % name)
 
@@ -116,10 +142,10 @@ class TimerView(TrackableView):
 class SequenceView(TrackableView):
     CMD_GET       = {'count', 'sequence', 'checkpoint', 'checkpoints'}
     CMDS_PUT      = {'set', 'get_checkpoints', 'remove_checkpoint', 'clear_checkpoints', 'advance_to_checkpoint'}
-    RESPONSES_PUT = {'set':                   'Sequence trackable "{name}" checkpoint set to "{cp}"',
-                     'remove_checkpoint':     'Timer trackable "{name}"\'s last checkpoint {cp} has been removed',
+    RESPONSES_PUT = {'set'                  : 'Sequence trackable "{name}" checkpoint set to "{cp}"',
+                     'remove_checkpoint'    : 'Timer trackable "{name}"\'s last checkpoint {cp} has been removed',
                      'advance_to_checkpoint': 'Sequence trackable "{name}" has been advanced to checkpoint {cp}',
-                     'clear_checkpoints':     'All checkpoints for sequence trackable "{name}" have been cleared.'
+                     'clear_checkpoints'    : 'All checkpoints for sequence trackable "{name}" have been cleared.'
                      }
 
     @ cherrypy.tools.json_out()
