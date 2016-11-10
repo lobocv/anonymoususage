@@ -26,6 +26,10 @@ class Statistic(Table):
         super(Statistic, self).__init__(*args, **kwargs)
         self.startup_value = self.count
 
+    @property
+    def difference_from_startup(self):
+        return self.startup_value - self.count
+
     def __add__(self, i):
         dt = datetime.datetime.now().strftime(self.time_fmt)
         count = self.count + i
@@ -42,20 +46,21 @@ class Statistic(Table):
 
         return self
 
-    @property
-    def difference_from_startup(self):
-        return self.startup_value - self.count
-
     def __sub__(self, i):
         self += -i
         return self
 
-    def increment(self, by):
-        self += by
+    def set(self, value):
+        delta = float(value) - self.count
+        self += delta
         return self.count
 
-    def decrement(self, by):
-        self -= by
+    def increment(self, by=1):
+        self += float(by)
+        return self.count
+
+    def decrement(self, by=1):
+        self -= float(by)
         return self.count
 
     def __repr__(self):
