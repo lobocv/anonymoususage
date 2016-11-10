@@ -5,6 +5,7 @@ host = 'http://127.0.0.1:8080'
 STATISTIC_URL = host + "/statistics"
 STATE_URL = host + "/states"
 TIMER_URL = host + "/timers"
+SEQUENCE_URL = host + "/sequences"
 
 
 # Statistic tests
@@ -73,6 +74,44 @@ print r.content
 r = requests.get(TIMER_URL + '/my_timer/total_minutes')
 print r.content
 
+
+
+# Sequence tests
+r = requests.post(SEQUENCE_URL, data={'name': 'my_sequence', 'checkpoints': 'a,b,c,d', 'description': 'example sequence'})
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/my_sequence')
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/non-existent-trackable')
+assert(r.status_code == 404)
+
+for cp in ('a', 'b', 'c', 'd'):
+    r = requests.put(SEQUENCE_URL + '/my_sequence/set/%s' % cp)
+    print r.content
+    r = requests.get(SEQUENCE_URL + '/my_sequence')
+    print r.content
+
+r = requests.put(SEQUENCE_URL + '/my_sequence/advance_to_checkpoint/c')
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/my_sequence')
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/my_sequence/not-a-checkpoint')
+assert(r.status_code == 404)
+
+r = requests.put(SEQUENCE_URL + '/my_sequence/remove_checkpoint')
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/my_sequence/checkpoint')
+print r.content
+
+r = requests.put(SEQUENCE_URL + '/my_sequence/clear_checkpoints')
+print r.content
+
+r = requests.get(SEQUENCE_URL + '/my_sequence/checkpoint')
+print r.content
 
 print 'done'
 
