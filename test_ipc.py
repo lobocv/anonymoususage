@@ -12,6 +12,9 @@ SEQUENCE_URL = host + "/sequences"
 r = requests.post(STATISTIC_URL, data={'name': 'age', 'description': 'my age'})
 print r.content
 
+r = requests.get(STATISTIC_URL)
+print r.content
+
 r = requests.get(STATISTIC_URL + '/age')
 print r.content
 
@@ -98,7 +101,7 @@ print r.content
 r = requests.get(SEQUENCE_URL + '/my_sequence')
 print r.content
 
-r = requests.get(SEQUENCE_URL + '/my_sequence/not-a-checkpoint')
+r = requests.put(SEQUENCE_URL + '/my_sequence/set/not-a-checkpoint')
 assert(r.status_code == 404)
 
 r = requests.put(SEQUENCE_URL + '/my_sequence/remove_checkpoint')
