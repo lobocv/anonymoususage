@@ -26,7 +26,7 @@ standalone 'USER100049' localhost 1213 ./my_statistics.db
     '''.format('\n\n'.join(v.api_help() for v in Views))
 
 
-def run_server(uuid, host, port, db_path, config=None):
+def run_server(uuid, host, port, db_path, config=None, username=None, password=None):
 
     print __help__
     logger = logging.getLogger()
@@ -47,7 +47,7 @@ def run_server(uuid, host, port, db_path, config=None):
 
     logging.info('Starting tracker..')
 
-    server.run(host, port)
+    server.run(host, port, username=username, password=password)
     logging.info('Stopping tracker..')
 
 
@@ -58,8 +58,13 @@ if __name__ == '__main__':
     parser.add_argument('host', nargs=1, type=str, help='IP to host the server')
     parser.add_argument('port', nargs=1, type=int, help='Port to host the server')
     parser.add_argument('db_path', nargs=1, type=str, help='Path to store the database')
+    parser.add_argument('--username', nargs=1, default=[None], type=str, dest='username', help='Username used for Digest secure API calls')
+    parser.add_argument('--password', nargs=1, default=[None], type=str, dest='password', help='Password used for Digest secure API calls')
     parser.add_argument('--config', nargs=1, default=[None], type=str, dest='config', help='Path to the configuration file')
 
     args = parser.parse_args()
 
-    run_server(args.uuid[0], args.host[0], args.port[0], args.db_path[0], config=args.config[0])
+    run_server(args.uuid[0], args.host[0], args.port[0], args.db_path[0],
+               config=args.config[0],
+               username=args.username[0],
+               password=args.password[0])

@@ -4,6 +4,8 @@ import unittest
 import json
 import time
 import requests
+from functools import partial
+from requests.auth import HTTPDigestAuth
 
 host = 'http://127.0.0.1:1213'
 STATISTIC_URL = host + "/statistics"
@@ -16,6 +18,15 @@ All tests are assuming the event dispatcher instance is stored in self.dispatche
 And all properties are named p1 or p2.
 """
 
+
+SECURE = 0
+
+if SECURE:
+    _get, _put, _post = requests.get, requests.put, requests.post
+    requests.get = partial(requests.get, auth=HTTPDigestAuth('jon', 'secret'))
+    requests.put = partial(requests.put, auth=HTTPDigestAuth('jon', 'secret'))
+    requests.post = partial(requests.post, auth=HTTPDigestAuth('jon', 'secret'))
+
 # Create some trackables
 r = requests.post(STATISTIC_URL, data={'name': 'age', 'description': 'my age'})
 assert(r.status_code == 200)
@@ -25,7 +36,6 @@ r = requests.post(TIMER_URL, data={'name': 'my_timer', 'description': 'timer for
 assert(r.status_code == 200)
 r = requests.post(SEQUENCE_URL,data={'name': 'my_sequence', 'checkpoints': 'a,b,c,d', 'description': 'example sequence'})
 assert(r.status_code == 200)
-
 
 
 class API_TEST(unittest.TestCase):

@@ -1,4 +1,6 @@
 import cherrypy
+from cherrypy.lib import auth_digest
+
 from exceptions import *
 from anonymoususage import AnonymousUsageTracker
 
@@ -200,9 +202,14 @@ class UsageTrackerServer(AnonymousUsageTracker):
     def index(self):
         return 'Nothing to see here'
 
-    def run(self, host, port):
-        cherrypy.tree.mount(self, '/')
+    def run(self, host, port, username=None, password=None):
+        if username is not None and password is not None:
+            cherrypy.config.update({'tools.auth_digest.on': True,
+                                    'tools.auth_digest.realm': 'localhost',
+                                    'tools.auth_digest.get_ha1': auth_digest.get_ha1_dict_plain({username: password}),
+                                    'tools.auth_digest.key': 'a565c27146791cfb'})
 
+        cherrypy.tree.mount(self, '/')
         cherrypy.tree.mount(StatisticView(),
                             '/statistics',
                             {'/': {'request.dispatch': cherrypy.dispatch.MethodDispatcher()}})
