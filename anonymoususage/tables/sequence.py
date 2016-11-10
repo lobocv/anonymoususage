@@ -31,14 +31,14 @@ class Sequence(Table):
 
     def __init__(self, name, tracker, checkpoints, *args, **kwargs):
         super(Sequence, self).__init__(name, tracker, *args, **kwargs)
-        self.checkpoints = checkpoints
+        self._checkpoints = checkpoints
         self.sequence = deque([], maxlen=len(checkpoints))
 
     def insert(self, checkpoint):
-        if checkpoint in self.checkpoints:
+        if checkpoint in self._checkpoints:
             self.sequence.append(checkpoint)
             logging.debug('{cp} added to sequence "{s.name}"'.format(cp=checkpoint, s=self))
-            if len(self.sequence) == len(self.checkpoints) and all(imap(eq, self.sequence, self.checkpoints)):
+            if len(self.sequence) == len(self._checkpoints) and all(imap(eq, self.sequence, self._checkpoints)):
                 # Sequence is complete. Increment the database
                 dt = datetime.datetime.now().strftime(self.time_fmt)
                 count = self.count + 1
@@ -66,18 +66,19 @@ class Sequence(Table):
     def checkpoint(self, checkpoint):
         self.insert(checkpoint)
 
-    def get_checkpoints(self):
+    @property
+    def checkpoints(self):
         """
         return a list of checkpoints (copy)
         """
-        return self.checkpoints[:]
+        return self._checkpoints[:]
 
     def remove_checkpoint(self):
         """
         Remove the last check point.
         """
         if len(self.sequence):
-            self.sequence.pop()
+            return self.sequence.pop()
 
     def clear_checkpoints(self):
         """
@@ -89,8 +90,8 @@ class Sequence(Table):
         """
         Advance to the specified checkpoint, passing all preceding checkpoints including the specified checkpoint.
         """
-        if checkpoint in self.checkpoints:
-            for cp in self.checkpoints:
+        if checkpoint in self._checkpoints:
+            for cp in self._checkpoints:
                 self.insert(cp)
                 if cp == checkpoint:
                     break
