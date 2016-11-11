@@ -1,3 +1,4 @@
+import sys
 import os
 import logging
 import logging.handlers
@@ -10,15 +11,7 @@ This application creates and starts a new anonymous usage tracker. Use the API t
 the tracker through a socket to setup and track statistics in your application.
 
 
-Call Arguments:
-     UUID        - Unique identifier for the user being tracked (string)
-     HOST        - Host address to open the socket under (use 'localhost' or '127.0.0.1' for local)
-     PORT        - Port to open the socket under
-     FILEPATH    - File path to write the database
-
-Example
-
-standalone 'USER100049' localhost 1213 ./my_statistics.db
+standalone.py 'USER100049' localhost 1213 ./my_statistics.db --config ./server.config --username calvin --password supersecret
 
                 API
 ===============================
@@ -61,6 +54,10 @@ if __name__ == '__main__':
     parser.add_argument('--username', nargs=1, default=[None], type=str, dest='username', help='Username used for Digest secure API calls')
     parser.add_argument('--password', nargs=1, default=[None], type=str, dest='password', help='Password used for Digest secure API calls')
     parser.add_argument('--config', nargs=1, default=[None], type=str, dest='config', help='Path to the configuration file')
+
+    if len(sys.argv) == 1:
+        parser.print_usage()
+        exit()
 
     args = parser.parse_args()
 
