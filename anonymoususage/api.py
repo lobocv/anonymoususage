@@ -207,6 +207,21 @@ class UsageTrackerServer(AnonymousUsageTracker):
         super(UsageTrackerServer, self).setup_hq(host, api_key)
         return 'HQ API key received.'
 
+    @cherrypy.expose
+    def enable(self):
+        super(UsageTrackerServer, self).enable()
+        return 'Usage tracker has been enabled'
+
+    @cherrypy.expose
+    def disable(self):
+        super(UsageTrackerServer, self).disable()
+        return 'Usage tracker has been disabled'
+
+    @cherrypy.expose
+    def submit_statistics(self):
+        status = super(UsageTrackerServer, self).submit_statistics()
+        return 'Submitting usage statistics: %s' % ('Success' if status else 'Failed')
+
     def run(self, host, port, username=None, password=None):
         if username is not None and password is not None:
             cherrypy.config.update({'tools.auth_digest.on': True,
