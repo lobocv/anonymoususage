@@ -71,12 +71,12 @@ class StatisticView(TrackableView):
                      'increment': 'Statistic trackable {name} count incremented to {}',
                      'decrement': 'Statistic trackable {name} count decremented to {}'}
     API_HELP = """
-        GET:  statistic/ \n
-              statistic/{trackable_name}/{?attribute} \n
-        PUT:  statistic/{trackable_name}/set/{value} \n
-              statistic/{trackable_name}/increment/{?value} \n
-              statistic/{trackable_name}/decrement/{?value} \n
-        POST: statistic/{trackable_name}/{?description}/{?max_rows} \n
+        GET:  statistics/ \n
+              statistics/{trackable_name}/{?attribute} \n
+        PUT:  statistics/{trackable_name}/set/{value} \n
+              statistics/{trackable_name}/increment/{?value} \n
+              statistics/{trackable_name}/decrement/{?value} \n
+        POST: statistics/{trackable_name}/{?description}/{?max_rows} \n
                """
 
     def POST(self, name, description='', max_rows=None):
@@ -94,10 +94,10 @@ class StateView(TrackableView):
     RESPONSES_PUT = {'set': 'State trackable "{name}" set to {}'}
 
     API_HELP = """
-        GET:  state/ \n
-              state/{trackable_name}/{?attribute} \n
-        PUT:  state/{trackable_name}/set/{value} \n
-        POST: state/{trackable_name}/{?description}/{?max_rows} \n
+        GET:  states/ \n
+              states/{trackable_name}/{?attribute} \n
+        PUT:  states/{trackable_name}/set/{value} \n
+        POST: states/{trackable_name}/{?description}/{?max_rows} \n
         """
 
     def decode_PUT_input(self, action, *string_inputs):
@@ -133,13 +133,13 @@ class TimerView(TrackableView):
                      }
 
     API_HELP = """
-        GET:  timer/ \n
-              timer/{trackable_name}/{?attribute} \n
-        PUT:  timer/{trackable_name}/start_timer/{value} \n
-              timer/{trackable_name}/stop_timer/{?value} \n
-              timer/{trackable_name}/pause_timer/{?value} \n
-              timer/{trackable_name}/resume_timer/{?value} \n
-        POST: timer/{trackable_name}/{?description}/{?max_rows} \n
+        GET:  timers/ \n
+              timers/{trackable_name}/{?attribute} \n
+        PUT:  timers/{trackable_name}/start_timer/{value} \n
+              timers/{trackable_name}/stop_timer/{?value} \n
+              timers/{trackable_name}/pause_timer/{?value} \n
+              timers/{trackable_name}/resume_timer/{?value} \n
+        POST: timers/{trackable_name}/{?description}/{?max_rows} \n
         """
 
     def POST(self, name, description='', max_rows=None, **kwargs):
@@ -161,13 +161,13 @@ class SequenceView(TrackableView):
                      }
 
     API_HELP = """
-        GET:  sequence/ \n
-              sequence/{trackable_name}/{?attribute} \n
-        PUT:  sequence/{trackable_name}/set/{value} \n
-              sequence/{trackable_name}/remove_checkpoint \n
-              sequence/{trackable_name}/advance_to_checkpoint/{?value} \n
-              sequence/{trackable_name}/clear_checkpoints \n
-        POST: sequence/{trackable_name}/{checkpoints}/{?description}/{?max_rows} \n
+        GET:  sequences/ \n
+              sequences/{trackable_name}/{?attribute} \n
+        PUT:  sequences/{trackable_name}/set/{value} \n
+              sequences/{trackable_name}/remove_checkpoint \n
+              sequences/{trackable_name}/advance_to_checkpoint/{?value} \n
+              sequences/{trackable_name}/clear_checkpoints \n
+        POST: sequences/{trackable_name}/{checkpoints}/{?description}/{?max_rows} \n
         """
 
     def PUT(self, name, action, *args):
