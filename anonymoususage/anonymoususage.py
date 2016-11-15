@@ -447,7 +447,7 @@ class AnonymousUsageTracker(object):
 
     def _watcher_thread(self):
         while 1:
-            time.sleep(self.check_interval_s)
+            time.sleep(self.check_interval_s or 300)
             if not self._watcher_enabled:
                 break
             if self._hq and self._requires_submission():
