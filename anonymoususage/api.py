@@ -97,7 +97,7 @@ class StateView(TrackableView):
         GET:  states/ \n
               states/{trackable_name}/{?attribute} \n
         PUT:  states/{trackable_name}/set/{value} \n
-        POST: states/{trackable_name}/{?description}/{?max_rows} \n
+        POST: states/{trackable_name}/{value}/{?description}/{?max_rows} \n
         """
 
     def decode_PUT_input(self, action, *string_inputs):
