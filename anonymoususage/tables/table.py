@@ -11,7 +11,7 @@ logger = logging.getLogger('AnonymousUsage')
 
 class Table(object):
     time_fmt = "%d/%m/%Y %H:%M:%S"
-    table_args = ("UUID", "INT"), ("Count", "INT"), ("Time", "TEXT")
+    table_args = ("UUID", "INTEGER"), ("Count", "REAL"), ("Time", "TEXT")
     lock = RLock()
 
     def __init__(self, name, tracker, max_rows):
