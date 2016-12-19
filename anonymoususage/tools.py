@@ -20,7 +20,7 @@ def create_table(dbcon, name, columns):
     """
     try:
         colString = ", ".join(["{} {}".format(colName, colType) for colName, colType in columns])
-        dbcon.execute("CREATE TABLE {name}({args})".format(name=name, args=colString))
+        dbcon.execute("CREATE TABLE '{name}'({args})".format(name=name, args=colString))
         return True
     except sqlite3.OperationalError as e:
         return False
@@ -34,7 +34,7 @@ def insert_row(dbconn, tablename, *args):
     :param args: table columns
     """
     cur = dbconn.cursor()
-    cur.execute("INSERT INTO {name} VALUES{args}".format(name=tablename, args=args))
+    cur.execute("INSERT INTO '{name}' VALUES{args}".format(name=tablename, args=args))
     dbconn.commit()
 
 
@@ -47,7 +47,7 @@ def delete_row(dbconn, table_name, field, value):
     :param value: value of the field in the table to delete
     """
     cur = dbconn.cursor()
-    cur.execute("DELETE FROM {name} WHERE {field}='{value}'".format(name=table_name, field=field, value=value))
+    cur.execute("DELETE FROM '{name}' WHERE {field}='{value}'".format(name=table_name, field=field, value=value))
     dbconn.commit()
 
 
@@ -103,9 +103,9 @@ def get_number_of_rows(dbcon, tablename, uuid=None):
     dbcur = dbcon.cursor()
     if check_table_exists(dbcon, tablename):
         if uuid:
-            dbcur.execute("SELECT COUNT(*) FROM {name} WHERE UUID='{uuid}'".format(name=tablename, uuid=uuid))
+            dbcur.execute("SELECT COUNT(*) FROM '{name}' WHERE UUID='{uuid}'".format(name=tablename, uuid=uuid))
         else:
-            dbcur.execute("SELECT COUNT(*) FROM {name}".format(name=tablename))
+            dbcur.execute("SELECT COUNT(*) FROM '{name}'".format(name=tablename))
         try:
             result = dbcur.fetchone()[0]
         except (TypeError, IndexError) as e:
@@ -206,16 +206,16 @@ def merge_databases(master, part):
         rows = pcur.fetchall()
         if rows:
             try:
-                logger.debug("Found   {n} rows of table {name} in master".format(name=table, n=rows[0][1]-1))
+                logger.debug("Found   {n} rows of table '{name}' in master".format(name=table, n=rows[0][1]-1))
             except Exception as e:
                 logging.error(e)
             if not check_table_exists(master, table):
                 create_table(master, table, cols)
 
             args = ("?," * len(cols))[:-1]
-            query = 'INSERT INTO {name} VALUES ({args})'.format(name=table, args=args)
+            query = "INSERT INTO '{name}' VALUES ({args})".format(name=table, args=args)
             mcur.executemany(query, tuple(tuple(r) for r in rows))
-            logger.debug("Merging {m} rows of table {name} into master".format(name=table, m=len(rows)))
+            logger.debug("Merging {m} rows of table '{name}' into master".format(name=table, m=len(rows)))
 
     master.commit()
 
