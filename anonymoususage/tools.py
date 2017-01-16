@@ -75,7 +75,7 @@ def get_uuid_list(dbconn):
     tables = get_table_list(dbconn)
     uuids = set()
     for table in tables:
-        cur.execute("SELECT (UUID) FROM {table}".format(table=table))
+        cur.execute("SELECT (UUID) FROM '{table}'".format(table=table))
         uuid = set([i[0] for i in cur.fetchall()])
         if uuid:
             uuids.update(uuid)
@@ -87,7 +87,7 @@ def get_table_columns(dbconn, tablename):
     Return a list of tuples specifying the column name and type
     """
     cur = dbconn.cursor()
-    cur.execute("PRAGMA table_info(%s);" % tablename)
+    cur.execute("PRAGMA table_info('%s');" % tablename)
     info = cur.fetchall()
     cols = [(i[1], i[2]) for i in info]
     return cols
@@ -165,9 +165,9 @@ def fetch(dbconn, tablename, n=1, uuid=None, end=True):
     order = 'DESC' if end else 'ASC'
     try:
         if uuid:
-            cur.execute("SELECT * FROM {} WHERE UUID='{}' ORDER BY ROWID {} LIMIT {};".format(tablename, uuid, order, n))
+            cur.execute("SELECT * FROM '{}' WHERE UUID='{}' ORDER BY ROWID {} LIMIT {};".format(tablename, uuid, order, n))
         else:
-            cur.execute("SELECT * FROM {} ORDER BY ROWID {} LIMIT {};".format(tablename, order, n))
+            cur.execute("SELECT * FROM '{}' ORDER BY ROWID {} LIMIT {};".format(tablename, order, n))
     except sqlite3.OperationalError as e:
         logger.error(e)
         return []
@@ -202,7 +202,7 @@ def merge_databases(master, part):
     tables = get_table_list(part)
     for table in tables:
         cols = get_table_columns(part, table)
-        pcur.execute("SELECT * FROM %s" % table)
+        pcur.execute("SELECT * FROM '%s'" % table)
         rows = pcur.fetchall()
         if rows:
             try:
@@ -250,7 +250,7 @@ def rename_table(dbconn, original, new):
     :param new: new table name
     """
     cur = dbconn.cursor()
-    cur.execute("ALTER TABLE {original} RENAME TO {new}".format(original=original, new=new))
+    cur.execute("ALTER TABLE '{original}' RENAME TO '{new}'".format(original=original, new=new))
 
 
 def login_hq(host, user, passwd, path='', acct='', port=21, timeout=5):
