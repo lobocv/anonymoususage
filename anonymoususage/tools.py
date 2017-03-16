@@ -9,7 +9,8 @@ logger = logging.getLogger('AnonymousUsage')
 
 __all__ = ['create_table', 'get_table_list', 'get_table_columns', 'check_table_exists', 'get_rows',
            'merge_databases', 'ftp_download', 'get_datetime_sorted_rows', 'delete_row', 'get_uuid_list',
-           'get_number_of_rows', 'get_last_row', 'get_first_row', 'fetch', 'rename_table', 'database_to_json']
+           'get_number_of_rows', 'get_last_row', 'get_first_row', 'fetch', 'rename_table', 'database_to_json',
+           'clear_table']
 
 
 def create_table(dbcon, name, columns):
@@ -48,6 +49,18 @@ def delete_row(dbconn, table_name, field, value):
     """
     cur = dbconn.cursor()
     cur.execute("DELETE FROM '{name}' WHERE {field}='{value}'".format(name=table_name, field=field, value=value))
+    dbconn.commit()
+
+
+def clear_table(dbconn, table_name):
+    """
+    Delete all rows from a table
+    :param dbconn: data base connection
+    :param table_name: name of the table
+    :return:
+    """
+    cur = dbconn.cursor()
+    cur.execute("DELETE FROM '{name}'".format(name=table_name))
     dbconn.commit()
 
 
