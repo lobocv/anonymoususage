@@ -281,12 +281,9 @@ class AnonymousUsageTracker(object):
                 if self.dbcon_part:
                     merge_databases(self.dbcon_master, self.dbcon_part)
 
-                    # Remove the partial file and create a new one
-                    os.remove(self.filepath_part)
-                    self.dbcon = self.dbcon_part = sqlite3.connect(self.filepath_part, check_same_thread=False)
-                    self.dbcon_part.row_factory = sqlite3.Row
-                    for table in self._tables.itervalues():
-                        create_table(self.dbcon_part, table.name, table.table_args)
+                    # Clear the partial database now that the stats have been uploaded
+                    for table in get_table_list(self.dbcon_part):
+                        clear_table(self.dbcon_part, table)
 
                 return True
         except Exception as e:
