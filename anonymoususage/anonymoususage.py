@@ -257,6 +257,8 @@ class AnonymousUsageTracker(object):
                 for name, info in tableinfo.iteritems():
                     if name not in payload['Data']:
                         table = self[name]
+                        if table is None:
+                            continue
                         if isinstance(table, State):
                             data = 'No State' if table._state == NO_STATE else table._state
                         else:
