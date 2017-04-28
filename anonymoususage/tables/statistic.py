@@ -25,7 +25,7 @@ class Statistic(Table):
 
     @property
     def difference_from_startup(self):
-        return self.startup_value - self.count
+        return self.count - self.startup_value
 
     def __add__(self, i):
         dt = datetime.datetime.now().strftime(self.time_fmt)
