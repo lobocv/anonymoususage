@@ -292,6 +292,31 @@ class AnonymousUsageTracker(object):
             self.stop_watcher()
             return False
 
+    def database_to_csv(self, path, orderby='type'):
+        """
+        Create a CSV file for the latest usage stats.
+        :param path: path to output CSV file
+        :param dbconn_master: master database connection
+        :param dbconn_part: partial database connection
+        :param tableinfo: table header information
+        """
+        tableinfo = self.get_table_info()
+        stats_master = database_to_json(self.dbcon_master, tableinfo)
+        stats_partial = database_to_json(self.dbcon_part, tableinfo)
+        with open(path, 'w') as f:
+            csvfile = csv.writer(f)
+            csvfile.writerow(['Name', 'Type', 'Value', 'Description'])
+            rows = []
+            for key in set(stats_master.iterkeys()).union(stats_partial.iterkeys()):
+                # Attempt to get the latest stat (from partial), if it doesn't exist get it from master
+                stat = stats_partial.get(key, stats_master[key])
+                rows.append([key, stat['type'], stat['data'], stat['description']])
+            if orderby == 'type':
+                rows.sort(key=lambda x: x[1]) # Sort by type
+            elif orderby == 'name':
+                rows.sort(key=lambda x: x[0])  # Sort by type
+            csvfile.writerows(rows)
+
     def to_file(self, path, precision='%.2g'):
         """
         Create a CSV report of the trackables
