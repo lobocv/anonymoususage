@@ -222,6 +222,11 @@ class UsageTrackerServer(AnonymousUsageTracker):
         status = super(UsageTrackerServer, self).submit_statistics()
         return 'Submitting usage statistics: %s' % ('Success' if status else 'Failed')
 
+    @cherrypy.expose
+    def database_to_csv(self, *args, **kwargs):
+        super(UsageTrackerServer, self).database_to_csv(*args, **kwargs)
+        return 'Database dumped to %s' % args[0]
+
     def run(self, host, port, username=None, password=None):
         if username is not None and password is not None:
             cherrypy.config.update({'tools.auth_digest.on': True,
