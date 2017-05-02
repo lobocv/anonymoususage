@@ -309,7 +309,9 @@ class AnonymousUsageTracker(object):
             rows = []
             for key in set(stats_master.iterkeys()).union(stats_partial.iterkeys()):
                 # Attempt to get the latest stat (from partial), if it doesn't exist get it from master
-                stat = stats_partial.get(key, stats_master[key])
+                stat = stats_partial.get(key) or stats_master.get(key)
+                if stat is None:
+                    continue
                 rows.append([key, stat['type'], stat['data'], stat['description']])
             if orderby == 'type':
                 rows.sort(key=lambda x: x[1]) # Sort by type
