@@ -146,6 +146,10 @@ class AnonymousUsageTracker(object):
         if len(tableinfo) == 0:
             dbconn.execute("INSERT INTO {name} VALUES{args}".format(name='__tableinfo__',
                                                                     args=(str(tablename), type, description)))
+        elif len(tableinfo) == 1 and tableinfo[0][2] != unicode(description):
+            # Update the description if it has changed
+            dbconn.execute("UPDATE {name} SET Description ='{description}' WHERE TableName = '{tablename}'" \
+                           .format(name='__tableinfo__', tablename=tablename, description=description))
 
     def get_table_info(self, field=None):
         rows = []
