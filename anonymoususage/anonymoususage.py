@@ -311,12 +311,17 @@ class AnonymousUsageTracker(object):
             csvfile = csv.writer(f)
             csvfile.writerow(['Name', 'Type', 'Value', 'Description'])
             rows = []
-            for key in set(stats_master.iterkeys()).union(stats_partial.iterkeys()):
+            for tablename, info in tableinfo.iteritems():
                 # Attempt to get the latest stat (from partial), if it doesn't exist get it from master
-                stat = stats_partial.get(key) or stats_master.get(key)
-                if stat is None:
-                    continue
-                rows.append([key, stat['type'], stat['data'], stat['description']])
+                value = stats_partial.get(tablename, {}).get('data', ValueError) or stats_master.get(tablename, {}).get('data', ValueError)
+                if value is ValueError:
+                    # The trackable was registered but no table values are found
+                    value = self[tablename].current_value
+                    if value is NO_STATE:
+                        value = 'No Initial State'
+
+                rows.append([tablename, info['type'], value, info['description']])
+
             if orderby == 'type':
                 rows.sort(key=lambda x: x[1]) # Sort by type
             elif orderby == 'name':
