@@ -38,6 +38,10 @@ class State(Table):
             self._state = self.get_last(1)[0]['State']
 
     @property
+    def current_value(self):
+        return self.state
+
+    @property
     def state(self):
         return self._state
 

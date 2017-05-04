@@ -31,6 +31,10 @@ class Sequence(Table):
         self._checkpoints = checkpoints
         self._sequence = deque([], maxlen=len(checkpoints))
 
+    @property
+    def current_value(self):
+        return self.count
+
     def insert(self, checkpoint):
         if checkpoint in self._checkpoints:
             self._sequence.append(checkpoint)

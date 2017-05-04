@@ -24,6 +24,10 @@ class Statistic(Table):
         self.startup_value = self.count
 
     @property
+    def current_value(self):
+        return self.count
+
+    @property
     def difference_from_startup(self):
         return self.count - self.startup_value
 
