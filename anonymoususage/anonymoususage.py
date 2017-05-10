@@ -237,62 +237,59 @@ class AnonymousUsageTracker(object):
             if not getattr(self, r, False):
                 return False
         self['__submissions__'] += 1
-        if self.dbcon_part:
-            db = self.dbcon_part
-            db_file = self.filepath_part
-        else:
-            db = self.dbcon_master
-            db_file = self.filepath
+
         try:
             # To ensure the usage tracker does not interfere with script functionality, catch all exceptions so any
             # errors always exit nicely.
-            with open(db_file, 'rb') as _f:
+            tableinfo = self.get_table_info()
+            # Get the last row from each table
+            json_data = database_to_json(self.dbcon_master, tableinfo)
+            json_data.update(database_to_json(self.dbcon_part, tableinfo))
 
-                tableinfo = self.get_table_info()
-                payload = {'API Key': self._hq['api_key'],
-                           'User Identifier': self.uuid,
-                           'Application Name': self.application_name,
-                           'Application Version': self.application_version,
-                           'Data': database_to_json(db, tableinfo)
-                           }
+            payload = {'API Key': self._hq['api_key'],
+                       'User Identifier': self.uuid,
+                       'Application Name': self.application_name,
+                       'Application Version': self.application_version,
+                       'Data': json_data
+                       }
 
-                # For tables with data that has not yet been writen to the database (ie inital values),
-                # add them manually to the payload
-                for name, info in tableinfo.iteritems():
-                    if name not in payload['Data']:
-                        table = self[name]
-                        if table is None:
-                            continue
-                        if isinstance(table, State):
-                            data = 'No State' if table._state == NO_STATE else table._state
-                        else:
-                            data = table.count
-                        tableinfo[name]['data'] = data
-                        payload['Data'][name] = tableinfo[name]
+            # For tables with data that has not yet been writen to the database (ie inital values),
+            # add them manually to the payload
+            for name, info in tableinfo.iteritems():
+                if name not in payload['Data']:
+                    table = self[name]
+                    if table is None:
+                        continue
+                    if isinstance(table, State):
+                        data = 'No State' if table._state == NO_STATE else table._state
+                    else:
+                        data = table.count
+                    tableinfo[name]['data'] = data
+                    payload['Data'][name] = tableinfo[name]
 
-                try:
-                    response = requests.post(self._hq['host'] + '/usagestats/upload',
-                                             data=json.dumps(payload),
-                                             timeout=self.HQ_DEFAULT_TIMEOUT)
-                except Exception as e:
-                    logging.error(e)
-                    response = False
+            try:
+                response = requests.post(self._hq['host'] + '/usagestats/upload',
+                                         data=json.dumps(payload),
+                                         timeout=self.HQ_DEFAULT_TIMEOUT)
+            except Exception as e:
+                logging.error(e)
+                response = False
 
-                if response and response.status_code == 200:
-                    success = True
-                    logger.debug('Submission to %s successful.' % self._hq['host'])
-                else:
-                    success = False
+            if response and response.status_code == 200:
+                success = True
+                logger.debug('Submission to %s successful.' % self._hq['host'])
+            else:
+                success = False
 
-                # If we have a partial database, merge it into the local master and create a new partial
-                if self.dbcon_part and success:
-                    merge_databases(self.dbcon_master, self.dbcon_part)
+            # If we have a partial database, merge it into the local master and create a new partial
+            if self.dbcon_part and success:
+                merge_databases(self.dbcon_master, self.dbcon_part)
 
-                    # Clear the partial database now that the stats have been uploaded
-                    for table in get_table_list(self.dbcon_part):
-                        clear_table(self.dbcon_part, table)
+                # Clear the partial database now that the stats have been uploaded
+                for table in get_table_list(self.dbcon_part):
+                    clear_table(self.dbcon_part, table)
 
-                return success
+            return success
         except Exception as e:
             logger.error(e)
             self['__submissions__'].delete_last()
