@@ -279,17 +279,20 @@ class AnonymousUsageTracker(object):
                     response = False
 
                 if response and response.status_code == 200:
+                    success = True
                     logger.debug('Submission to %s successful.' % self._hq['host'])
+                else:
+                    success = False
 
                 # If we have a partial database, merge it into the local master and create a new partial
-                if self.dbcon_part:
+                if self.dbcon_part and success:
                     merge_databases(self.dbcon_master, self.dbcon_part)
 
                     # Clear the partial database now that the stats have been uploaded
                     for table in get_table_list(self.dbcon_part):
                         clear_table(self.dbcon_part, table)
 
-                return True
+                return success
         except Exception as e:
             logger.error(e)
             self['__submissions__'].delete_last()
