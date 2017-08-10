@@ -182,7 +182,9 @@ def fetch(dbconn, tablename, n=1, uuid=None, end=True):
         else:
             cur.execute("SELECT * FROM '{}' ORDER BY ROWID {} LIMIT {};".format(tablename, order, n))
     except sqlite3.OperationalError as e:
-        logger.error(e)
+        if 'no such table' not in getattr(e, 'message', ''):
+            # Suppress logging of errors generated when no table exists
+            logger.error(e)
         return []
     rows = cur.fetchall()
     return rows
